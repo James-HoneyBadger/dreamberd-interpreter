@@ -6,7 +6,6 @@ A full-featured graphical IDE for DreamBerd development
 
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox, scrolledtext
-import threading
 import os
 from pathlib import Path
 import json
@@ -497,40 +496,83 @@ class DreamberdGUIIDE:
         self.output_text_widget.insert(tk.END, "Running DreamBerd code...\n")
         self.status_label.config(text="Running...")
 
-        # Run in thread to avoid blocking GUI
-        thread = threading.Thread(target=self._execute_code, args=(code,))
-        thread.daemon = True
-        thread.start()
+        # Execute synchronously - DreamBerd execution is fast
+        self._execute_code(code)
 
     def _execute_code(self, code):
         try:
             # Save code to temp file
             import tempfile
+            import io
+            from contextlib import redirect_stdout
 
             with tempfile.NamedTemporaryFile(mode="w", suffix=".db", delete=False) as f:
                 f.write(code)
                 temp_file = f.name
 
-            # Import and run DreamBerd interpreter
             try:
-                from dreamberd import run_file
+                # Import required functions
+                from dreamberd.processor.lexer import tokenize
+                from dreamberd.processor.syntax_tree import generate_syntax_tree
+                from dreamberd.interpreter import (
+                    load_globals,
+                    load_global_dreamberd_variables,
+                    load_public_global_variables,
+                    interpret_code_statements_main_wrapper,
+                )
+                from dreamberd.builtin import KEYWORDS
 
                 # Capture stdout
-                import io
-                from contextlib import redirect_stdout
-
                 f = io.StringIO()
                 with redirect_stdout(f):
-                    run_file(temp_file)
+                    # Execute code synchronously (modified version of run_file without waiting)
+                    filename = temp_file
+                    tokens = tokenize(filename, code)
+                    statements = generate_syntax_tree(filename, tokens, code)
+
+                    # Load variables and run the code
+                    namespaces = [KEYWORDS.copy()]  # type: ignore
+                    exported_names = []
+                    importable_names = {}
+                    load_globals(
+                        filename,
+                        code,
+                        {},
+                        set(),
+                        exported_names,
+                        importable_names.get(filename, {}),
+                    )
+                    load_global_dreamberd_variables(namespaces)  # type: ignore
+                    load_public_global_variables(namespaces)  # type: ignore
+                    interpret_code_statements_main_wrapper(
+                        statements, namespaces, [], [{}]  # type: ignore
+                    )
+
                 output = f.getvalue()
 
-                self.root.after(0, lambda: self._update_output_success(output))
+                # Filter out the warning message if present (including ANSI color codes)
+                import re
+
+                output_lines = output.split("\n")
+                filtered_lines = []
+                for line in output_lines:
+                    # Remove ANSI escape sequences and check for warning
+                    clean_line = re.sub(r"\x1b\[[0-9;]*m", "", line)
+                    if not clean_line.startswith(
+                        "Warning: Could not load public global variables"
+                    ):
+                        filtered_lines.append(line)
+                output = "\n".join(filtered_lines).strip()
+
+                self._update_output_success(output)
 
             except Exception as e:
-                self.root.after(0, lambda: self._update_output_error(str(e)))
+                error_msg = str(e)
+                self._update_output_error(error_msg)
 
         except Exception as e:
-            self.root.after(0, lambda: self._update_output_error(str(e)))
+            error_msg = str(e)
+            self._update_output_error(error_msg)
         finally:
             # Clean up temp file
             if "temp_file" in locals():
@@ -554,7 +596,11 @@ class DreamberdGUIIDE:
         self.status_label.config(text="Ready")
 
     def _update_output_error(self, error):
-        self.output_text_widget.insert(tk.END, f"Error: {error}\n")
+        # Strip ANSI color codes from error messages
+        import re
+
+        clean_error = re.sub(r"\x1b\[[0-9;]*m", "", str(error))
+        self.output_text_widget.insert(tk.END, f"Error: {clean_error}\n")
         self.output_text_widget.see(tk.END)
         self.status_label.config(text="Error")
 

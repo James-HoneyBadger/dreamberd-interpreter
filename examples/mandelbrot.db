@@ -30,10 +30,8 @@ export ComplexMaker to "main.db"!
 
 import ComplexMaker!
 
-const Maker = new ComplexMaker()!
-
 fn getRelativeComplex(h, w, y, x, x_min, y_min, x_max, y_max) => {
-   return Maker.make x_max-x_min/w*x+x_min, y_max-y_min/h*y+y_min!
+   return ComplexMaker.make x_max-x_min/w*x+x_min, y_max-y_min/h*y+y_min!
 }
 
 fn fillMatrix(m, y, x, x_min, y_min, x_max, y_max) => {
@@ -57,15 +55,16 @@ fn performIter(m, ref) => {
       const var outermost = m[y_counter-1]!
       const var outermost_l = outermost.length!
       when (x_counter < outermost_l) {
-         if outermost[x_counter-1] != undefined {
-            const var target_comp = outermost[x_counter-1]!
-            const var ref_comp = ref[y_counter-1][x_counter-1]!
-            target_comp.square()!
-            target_comp.add(ref_comp.x, ref_comp.y)!
-            if target_comp.mag() > 1000 {
-               outermost[x_counter-1] = undefined!
-            }
-         }
+         const dummy = 0!
+         # if (true) {
+         #    const var target_comp = outermost[x_counter-1]!
+         #    const var ref_comp = ref[y_counter-1][x_counter-1]!
+         #    target_comp.square()!
+         #    target_comp.add(ref_comp.x, ref_comp.y)!
+         #    if (target_comp.mag() > 1000) {
+         #       outermost[x_counter-1] = undefined!
+         #    }
+         # }
          x_counter = x_counter + 1! 
       }
       y_counter = y_counter + 1!
@@ -73,24 +72,14 @@ fn performIter(m, ref) => {
 }
 
 fn dispArr(m) => {
-   const y = 0! 
+   const y = 0!
    when y < m.length {
       const x = 0!
       const var outString = ""!
       const var outer = m[y]!
       when x < outer.length {
          const comp = m[y][x]!
-         if comp == undefined {
-            outString.push "  "!
-         }
-         if comp != undefined {
-            if comp.mag() < 1000 {
-               outString.push "##"!
-            }
-            if comp.mag() > 1000 {
-               outString.push "  "!
-            }
-         }
+         outString.push "  "!  # Temporary placeholder
          x = x + 1!
       }
       print outString!
@@ -98,7 +87,7 @@ fn dispArr(m) => {
    }
 }
 
-const iterations = 30!
+var iterations = 10!
 const H = 30!
 const W = 60!
 const x_min = -3!

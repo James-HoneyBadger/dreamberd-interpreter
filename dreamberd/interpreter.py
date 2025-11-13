@@ -310,33 +310,68 @@ def load_global_dreamberd_variables(namespaces: list[Namespace]) -> None:
 
 
 def load_public_global_variables(namespaces: list[Namespace]) -> None:
-    repo_url = "https://raw.githubusercontent.com/James-HoneyBadger/dreamberd-interpreter-globals-patched/main"
-    for line in requests.get(f"{repo_url}/public_globals.txt").text.split("\n"):
-        if not line.strip():
-            continue
-        name, address, confidence = line.split(DB_VAR_TO_VALUE_SEP)
-        can_be_reset = can_edit_value = False  # these were const
+    try:
+        repo_url = "https://raw.githubusercontent.com/James-HoneyBadger/dreamberd-interpreter-globals-patched/main"
+        response = requests.get(f"{repo_url}/public_globals.txt", timeout=5)
+        response.raise_for_status()
 
-        serialized_value = requests.get(f"{repo_url}/serialized_objects/{address}").text
-        try:
-            value = deserialize_obj(json.loads(serialized_value))
-            namespaces[-1][name] = Variable(
-                name,
-                [
-                    VariableLifetime(
-                        value,
-                        100000000000,
-                        int(confidence),
-                        can_be_reset,
-                        can_edit_value,
-                    )
-                ],
-                [],
-            )
-        except (json.JSONDecodeError, NonFormattedError, ValueError):
-            print(
-                f"\033[33mWarning: Public global variable `{name}` access failed.\033[39m"
-            )
+        for line in response.text.split("\n"):
+            if not line.strip():
+                continue
+            try:
+                name, address, confidence = line.split(DB_VAR_TO_VALUE_SEP)
+                can_be_reset = can_edit_value = False  # these were const
+
+                serialized_value_response = requests.get(
+                    f"{repo_url}/serialized_objects/{address}", timeout=5
+                )
+                serialized_value_response.raise_for_status()
+                serialized_value = serialized_value_response.text
+
+                value = deserialize_obj(json.loads(serialized_value))
+                namespaces[-1][name] = Variable(
+                    name,
+                    [
+                        VariableLifetime(
+                            value,
+                            100000000000,
+                            int(confidence),
+                            can_be_reset,
+                            can_edit_value,
+                        )
+                    ],
+                    [],
+                )
+            except (ValueError, json.JSONDecodeError, requests.RequestException):
+                # Skip malformed lines or failed requests
+                continue
+    except requests.RequestException:
+        # If we can't load public globals, provide essential fallback variables
+        print(
+            "\033[33mWarning: Could not load public global variables. Using fallback values.\033[39m"
+        )
+        # Provide essential variables that the interpreter needs
+        from dreamberd.builtin import (
+            DreamberdNumber,
+            BuiltinFunction,
+            db_to_number,
+            db_to_string,
+            db_print,
+        )
+
+        essential_vars = {
+            "true": DreamberdNumber(1),
+            "false": DreamberdNumber(0),
+            "null": None,
+            "undefined": None,
+        }
+        for name, value in essential_vars.items():
+            if value is not None:
+                namespaces[-1][name] = Variable(
+                    name,
+                    [VariableLifetime(value, 100000000000, 100, False, False)],
+                    [],
+                )
 
 
 def open_global_variable_issue(name: str, value: DreamberdValue, confidence: int):
