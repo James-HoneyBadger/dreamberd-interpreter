@@ -68,6 +68,7 @@ class ClassDeclaration(CodeStatement, CodeStatementKeywordable):
 class VariableDeclaration(CodeStatement, CodeStatementDebuggable):
     name: Token
     modifiers: list[Token]
+    type_annotation: Optional[list[Token]]  # Type annotation tokens
     lifetime: Optional[str]
     expression: Union[list[Token], ExpressionTreeNode]
     debug: int
@@ -217,6 +218,54 @@ def split_into_statements(tokens: list[Token]) -> list[list[Token]]:
         final_statements.append(statement)
 
     return final_statements
+
+
+def extract_type_annotations(
+    filename: str, code: str, statements: list[list[Token]]
+) -> list[tuple[list[Token], Optional[list[Token]]]]:
+    """Extract type annotations from statements before they are removed."""
+    result = []
+
+    for tokens in statements:
+        type_annotation = None
+        scope_layers = 0
+        square_bracket_layers = 0
+        i = 0
+
+        while i < len(tokens):
+            t = tokens[i]
+            if t.type == TokenType.L_CURLY:
+                scope_layers += 1
+            elif t.type == TokenType.R_CURLY:
+                scope_layers -= 1
+            elif t.type == TokenType.L_SQUARE:
+                square_bracket_layers += 1
+            elif t.type == TokenType.R_SQUARE:
+                square_bracket_layers -= 1
+            elif (
+                t.type == TokenType.COLON
+                and scope_layers == 0
+                and square_bracket_layers == 0
+            ):
+                # Found a type annotation - extract everything from here until the equals sign
+                type_start = i + 1
+                type_tokens = []
+                i += 1
+                while i < len(tokens) and tokens[i].type not in [
+                    TokenType.EQUAL,
+                    TokenType.L_CURLY,
+                ]:
+                    if tokens[i].type != TokenType.WHITESPACE:
+                        type_tokens.append(tokens[i])
+                    i += 1
+                if type_tokens:
+                    type_annotation = type_tokens
+                break
+            i += 1
+
+        result.append((tokens, type_annotation))
+
+    return result
 
 
 def remove_type_hints(
@@ -385,7 +434,11 @@ def create_function_definition(
 
 
 def create_scoped_code_statement(
-    filename: str, tokens: list[Token], without_whitespace: list[Token], code: str
+    filename: str,
+    tokens: list[Token],
+    without_whitespace: list[Token],
+    code: str,
+    type_annotation: Optional[list[Token]] = None,
 ) -> tuple[CodeStatement, ...]:
 
     # this means that a scope is detected in the statement
@@ -495,7 +548,11 @@ def is_proper_comma_list(
 
 
 def create_unscoped_code_statement(
-    filename: str, tokens: list[Token], without_whitespace: list[Token], code: str
+    filename: str,
+    tokens: list[Token],
+    without_whitespace: list[Token],
+    code: str,
+    type_annotation: Optional[list[Token]] = None,
 ) -> tuple[CodeStatement, ...]:
 
     is_debug = tokens[-1].type == TokenType.QUESTION
@@ -679,6 +736,7 @@ def create_unscoped_code_statement(
                 ],  # the end should be a puncutation
                 confidence=confidence,
                 debug=debug_level,
+                type_annotation=type_annotation,
             )
         )
     if can_be_var_assignment:
@@ -701,11 +759,16 @@ def generate_syntax_tree(
 
     assert_proper_indentation(filename, tokens, code)
     statements = split_into_statements(tokens)
-    removed_hints = remove_type_hints(filename, code, statements)
+    extracted_types = extract_type_annotations(filename, code, statements)
+    removed_hints = remove_type_hints(
+        filename, code, [tokens for tokens, _ in extracted_types]
+    )
     final_statements = []
 
     # now we need to perform pattern matching on each list of statements
-    for tokens in removed_hints:
+    for (original_tokens, type_annotation), tokens in zip(
+        extracted_types, removed_hints
+    ):
 
         without_whitespace = [t for t in tokens if t.type != TokenType.WHITESPACE]
 
@@ -714,14 +777,18 @@ def generate_syntax_tree(
             if any(t.type == TokenType.L_CURLY for t in tokens):
                 final_statements.append(
                     create_scoped_code_statement(
-                        filename, tokens, without_whitespace, code
+                        filename, tokens, without_whitespace, code, type_annotation
                     )
                 )
 
             else:
                 final_statements.append(
                     create_unscoped_code_statement(
-                        filename, tokens, without_whitespace, code
+                        filename,
+                        tokens,
+                        without_whitespace,
+                        code,
+                        type_annotation,
                     )
                 )
 

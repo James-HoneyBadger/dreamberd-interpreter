@@ -34,6 +34,7 @@ except ImportError:
     GITHUB_IMPORTED = False
 
 from dreamberd.base import (
+    InterpretationError,
     NonFormattedError,
     OperatorType,
     Token,
@@ -454,6 +455,49 @@ def open_global_variable_issue(name: str, value: DreamberdValue, confidence: int
         )
 
 
+def check_type_annotation(value: DreamberdValue, type_tokens: list[Token]) -> None:
+    """Check if a value matches the expected type annotation."""
+    if not type_tokens:
+        return  # No type annotation, nothing to check
+
+    # Extract the type name from tokens (skip whitespace)
+    type_name_tokens = [t for t in type_tokens if t.type != TokenType.WHITESPACE]
+    if not type_name_tokens:
+        return
+
+    type_name = "".join(t.value for t in type_name_tokens)
+
+    # Check type compatibility
+    if type_name == "Int":
+        if not isinstance(value, DreamberdNumber):
+            raise InterpretationError(
+                f"Type error: expected Int, got {type(value).__name__}"
+            )
+    elif type_name == "String":
+        if not isinstance(value, DreamberdString):
+            raise InterpretationError(
+                f"Type error: expected String, got {type(value).__name__}"
+            )
+    elif type_name == "Char[]":
+        if not isinstance(value, DreamberdString):
+            raise InterpretationError(
+                f"Type error: expected Char[], got {type(value).__name__}"
+            )
+    elif type_name == "Int9":
+        if not isinstance(value, DreamberdNumber):
+            raise InterpretationError(
+                f"Type error: expected Int9, got {type(value).__name__}"
+            )
+        # Int9 represents binary, but for now we'll just check it's a number
+    elif type_name == "Int99":
+        if not isinstance(value, DreamberdNumber):
+            raise InterpretationError(
+                f"Type error: expected Int99, got {type(value).__name__}"
+            )
+        # Int99 represents some other representation, but for now we'll just check it's a number
+    # Add more type checks as needed
+
+
 def declare_new_variable(
     statement: VariableDeclaration,
     value: DreamberdValue,
@@ -469,6 +513,11 @@ def declare_new_variable(
         statement.debug,
         statement.modifiers,
     )
+
+    # Check type annotation if provided
+    if hasattr(statement, "type_annotation") and statement.type_annotation:
+        check_type_annotation(value, statement.type_annotation)
+
     name_token = statement.name  # for error handling purposes
     is_global = len(modifiers) == 3
     can_be_reset = (
@@ -493,21 +542,45 @@ def declare_new_variable(
         )
 
     is_lifetime_temporal = lifetime is not None and not lifetime[-1].isdigit()
-    variable_duration = (
-        100000000000 if is_lifetime_temporal or lifetime is None else int(lifetime)
-    )
-    target_lifetime = VariableLifetime(
-        value, variable_duration, confidence, can_be_reset, can_edit_value
-    )
+    temporal_duration = 0.0
+    if is_lifetime_temporal:
+        if lifetime.endswith("s"):
+            # seconds
+            temporal_duration = float(lifetime[:-1])
+        elif lifetime == "Infinity":
+            # special case handled elsewhere
+            temporal_duration = 0.0
+        else:
+            # unknown unit, treat as infinite
+            temporal_duration = 0.0
+        variable_duration = 100000000000  # large number for lines
+        target_lifetime = VariableLifetime(
+            value,
+            variable_duration,
+            confidence,
+            can_be_reset,
+            can_edit_value,
+            is_temporal=True,
+            temporal_duration=temporal_duration,
+        )
+    else:
+        variable_duration = 100000000000 if lifetime is None else int(lifetime)
+        target_lifetime = VariableLifetime(
+            value, variable_duration, confidence, can_be_reset, can_edit_value
+        )
 
     if v := namespaces[-1].get(name):
         if isinstance(v, Variable):  # check for another declaration?
             target_var = v
-            for i in range(len(v.lifetimes) + 1):
-                if i == len(v.lifetimes) or v.lifetimes[i].confidence == confidence:
-                    if i == 0:
-                        v.prev_values.append(v.value)
-                    v.lifetimes[i:i] = [target_lifetime]
+            v.add_lifetime(
+                value,
+                confidence,
+                variable_duration,
+                can_be_reset,
+                can_edit_value,
+                is_temporal=is_lifetime_temporal,
+                temporal_duration=temporal_duration if is_lifetime_temporal else 0.0,
+            )
         else:
             target_var = Variable(name, [target_lifetime], [v.value])
             namespaces[-1][name] = target_var
@@ -790,7 +863,13 @@ def assign_variable(
                 name_token,
             )
         var.add_lifetime(
-            new_value, confidence, 100000000000, var.can_be_reset, var.can_edit_value
+            new_value,
+            confidence,
+            100000000000,
+            var.can_be_reset,
+            var.can_edit_value,
+            is_temporal=False,
+            temporal_duration=0.0,
         )
 
     # check if there is anything watching this value
@@ -910,61 +989,143 @@ def interpret_formatted_string(
     when_statement_watchers: WhenStatementWatchers,
 ) -> DreamberdString:
     val_string = val.value
+
+    # Support multiple currency symbols as mentioned in the spec
+    currency_symbols = [
+        "$",
+        "£",
+        "¥",
+        "€",
+        "₹",
+        "₽",
+        "₩",
+        "₿",
+        "¢",
+        "₦",
+        "₨",
+        "₪",
+        "₫",
+        "₭",
+        "₮",
+        "₯",
+        "₰",
+        "₱",
+        "₲",
+        "₳",
+        "₴",
+        "₵",
+        "₶",
+        "₷",
+        "₸",
+        "₹",
+        "₺",
+        "₻",
+        "₼",
+        "₽",
+        "₾",
+        "₿",
+        "₰",
+        "₱",
+        "₲",
+        "₳",
+        "₴",
+        "₵",
+        "₶",
+        "₷",
+        "₸",
+        "₹",
+        "₺",
+        "₻",
+        "₼",
+        "₽",
+        "₾",
+        "₿",
+    ]
+
+    # Try system currency symbol first
     try:
         locale.setlocale(locale.LC_ALL, locale.getlocale()[0])
-        symbol: str = locale.localeconv()["currency_symbol"]  # type: ignore
+        system_symbol: str = locale.localeconv()["currency_symbol"]  # type: ignore
+        if system_symbol:
+            currency_symbols.insert(0, system_symbol)  # Prioritize system symbol
     except locale.Error:
-        symbol = "$"
-    if not any(
-        indeces := [
-            val_string[i : i + len(symbol)] == symbol
-            for i in range(len(val_string) - len(symbol))
-        ]
-    ):
+        pass
+
+    # Remove duplicates while preserving order
+    seen = set()
+    currency_symbols = [x for x in currency_symbols if not (x in seen or seen.add(x))]
+
+    # Check for any interpolation patterns
+    interpolation_found = False
+    for symbol in currency_symbols:
+        if symbol + "{" in val_string:
+            interpolation_found = True
+            break
+
+    if not interpolation_found:
         return DreamberdString(val_string)
+
     try:
         evaluated_values: list[tuple[str, tuple[int, int]]] = (
             []
         )  # [(str, (start, end))...]
-        for group_start_index in [i for i in range(len(indeces)) if indeces[i]]:
-            if val_string[group_start_index + len(symbol)] == "{":
-                end_index = group_start_index + len(symbol)
-                bracket_layers = 1
-                while (
-                    bracket_layers
-                ):  # if this errs, it will be caught and detected as invalid formatting
-                    end_index += 1
-                    if val_string[end_index] == "{":
-                        bracket_layers += 1
-                    elif val_string[end_index] == "}":
-                        bracket_layers -= 1
 
-                # end_index is now the index containing the bracket.
-                internal_tokens = db_tokenize(
-                    f"{filename}__interpolated_string",
-                    val_string[group_start_index + len(symbol) + 1 : end_index],
-                )
-                internal_expr = build_expression_tree(filename, internal_tokens, code)
-                internal_value = evaluate_expression(
-                    internal_expr,
-                    namespaces,
-                    async_statements,
-                    when_statement_watchers,
-                    ignore_string_escape_sequences=True,
-                )
-                evaluated_values.append(
-                    (
-                        db_to_string(internal_value).value,
-                        (group_start_index, end_index + 1),
-                    )
-                )
+        for symbol in currency_symbols:
+            symbol_len = len(symbol)
+            i = 0
+            while i < len(val_string) - symbol_len:
+                if (
+                    val_string[i : i + symbol_len] == symbol
+                    and i + symbol_len < len(val_string)
+                    and val_string[i + symbol_len] == "{"
+                ):
+                    group_start_index = i
+                    end_index = i + symbol_len
+                    bracket_layers = 1
+                    while bracket_layers and end_index + 1 < len(val_string):
+                        end_index += 1
+                        if val_string[end_index] == "{":
+                            bracket_layers += 1
+                        elif val_string[end_index] == "}":
+                            bracket_layers -= 1
+
+                    if bracket_layers == 0:  # Valid interpolation found
+                        # Parse the expression inside the braces
+                        internal_tokens = db_tokenize(
+                            f"{filename}__interpolated_string",
+                            val_string[group_start_index + symbol_len + 1 : end_index],
+                        )
+                        internal_expr = build_expression_tree(
+                            filename, internal_tokens, code
+                        )
+                        internal_value = evaluate_expression(
+                            internal_expr,
+                            namespaces,
+                            async_statements,
+                            when_statement_watchers,
+                            ignore_string_escape_sequences=True,
+                        )
+                        evaluated_values.append(
+                            (
+                                db_to_string(internal_value).value,
+                                (group_start_index, end_index + 1),
+                            )
+                        )
+                        i = end_index  # Skip past this interpolation
+                    else:
+                        i += 1  # Continue searching
+                else:
+                    i += 1
+
+        # Sort by start index (in reverse order for replacement)
+        evaluated_values.sort(key=lambda x: x[1][0], reverse=True)
 
         new_string = list(val_string)
-        for replacement, (start, end) in reversed(evaluated_values):
+        for replacement, (start, end) in evaluated_values:
             new_string[start:end] = replacement
         return DreamberdString("".join(new_string))
 
-    except IndexError:
+    except (IndexError, ValueError):
         raise_error_at_line(
             filename, code, current_line, "Invalid interpolated string formatting."
         )
@@ -1514,6 +1675,72 @@ def evaluate_expression_for_real(
                             expr.args[0].name_or_value,
                         )
                     return val.prev_values[-1]
+
+                elif func.value.value == "next":
+                    if len(expr.args) != 1:
+                        raise_error_at_token(
+                            filename,
+                            code,
+                            "Expected only one argument for next function.",
+                            expr.name,
+                        )
+                    if not isinstance(expr.args[0], ValueNode):
+                        raise_error_at_token(
+                            filename,
+                            code,
+                            "Expected argument of next function to be a variable.",
+                            expr.name,
+                        )
+                    force_execute_sync = True
+
+                    # check for None again
+                    val = get_name_from_namespaces(
+                        expr.args[0].name_or_value.value, namespaces
+                    )
+                    if not isinstance(val, Variable):
+                        raise_error_at_token(
+                            filename,
+                            code,
+                            "Expected argument of next function to be a defined variable.",
+                            expr.args[0].name_or_value,
+                        )
+                    # For next, we need to return a promise that will resolve to the future value
+                    # Create a promise and register a watcher for the variable
+                    promise = DreamberdPromise(None)
+
+                    # Get the namespace ID for the watcher key
+                    _, ns = get_name_and_namespace_from_namespaces(
+                        expr.args[0].name_or_value.value, namespaces
+                    )
+                    if not ns:
+                        raise_error_at_token(
+                            filename,
+                            code,
+                            "Could not find namespace for variable.",
+                            expr.args[0].name_or_value,
+                        )
+                    ns_id = id(ns)
+                    var_name = expr.args[0].name_or_value.value
+
+                    # Create a dummy return statement that will resolve the promise
+                    # This is a bit of a hack, but it works with the existing watcher system
+                    dummy_return = ReturnStatement(
+                        expression=[
+                            expr.args[0].name_or_value
+                        ],  # Just return the variable value
+                        debug=0,
+                    )
+
+                    # Register the watcher
+                    watchers_key = (var_name, ns_id)
+                    name_watchers[watchers_key] = (
+                        dummy_return,
+                        {watchers_key},  # Only watching this one variable
+                        namespaces + [{}],  # Empty namespace for the watcher
+                        promise,
+                    )
+
+                    return promise
 
             if not isinstance(func.value, (BuiltinFunction, DreamberdFunction)):
                 raise_error_at_token(
@@ -2838,6 +3065,19 @@ def interpret_code_statements(
     async_statements: AsyncStatements,
     when_statement_watchers: WhenStatementWatchers,
 ) -> Optional[DreamberdValue]:
+
+    # Hoist variable declarations with negative lifetimes
+    for stmt_tuple in statements:
+        for stmt in stmt_tuple:
+            if isinstance(stmt, VariableDeclaration) and stmt.lifetime:
+                try:
+                    if int(stmt.lifetime) < 0:
+                        stmt.lifetime = None  # infinite for hoisted
+                        interpret_statement(
+                            stmt, namespaces, async_statements, when_statement_watchers
+                        )
+                except ValueError:
+                    pass
 
     curr, direction = 0, 1
     while 0 <= curr < len(statements):

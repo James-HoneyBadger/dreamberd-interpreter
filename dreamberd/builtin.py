@@ -1,5 +1,6 @@
 from __future__ import annotations
 import functools
+import time
 from time import sleep
 
 import math
@@ -407,6 +408,9 @@ class VariableLifetime:
     confidence: int
     can_be_reset: bool
     can_edit_value: bool
+    creation_time: float = field(default_factory=lambda: time.time())
+    is_temporal: bool = False
+    temporal_duration: float = 0.0
 
 
 @dataclass
@@ -434,6 +438,8 @@ class Variable:
         duration: int,
         can_be_reset: bool,
         can_edit_value: bool,
+        is_temporal: bool = False,
+        temporal_duration: float = 0.0,
     ) -> None:
         for i in range(len(self.lifetimes) + 1):
             if i == len(self.lifetimes) or self.lifetimes[i].confidence >= confidence:
@@ -441,15 +447,24 @@ class Variable:
                     self.prev_values.append(self.value)
                 self.lifetimes[i:i] = [
                     VariableLifetime(
-                        value, duration, confidence, can_be_reset, can_edit_value
+                        value,
+                        duration,
+                        confidence,
+                        can_be_reset,
+                        can_edit_value,
+                        is_temporal=is_temporal,
+                        temporal_duration=temporal_duration,
                     )
                 ]
                 break
 
     def clear_outdated_lifetimes(self) -> None:
         remove_indeces = []
+        current_time = time.time()
         for i, l in enumerate(self.lifetimes):
-            if l.lines_left == 0:
+            if l.lines_left == 0 or (
+                l.is_temporal and current_time - l.creation_time >= l.temporal_duration
+            ):
                 remove_indeces.append(i)
         for i in reversed(remove_indeces):
             del self.lifetimes[i]
@@ -637,9 +652,62 @@ def db_read(path: DreamberdValue) -> DreamberdString:
     return DreamberdString(s)
 
 
+def db_regex_match(arg: DreamberdString) -> DreamberdBoolean:
+    if not isinstance(arg, DreamberdString):
+        raise NonFormattedError("regex_match requires pattern,string")
+
+    parts = arg.value.split(",", 1)
+    if len(parts) != 2:
+        raise NonFormattedError("regex_match requires pattern,string")
+
+    pattern, string = parts
+    import re
+
+    try:
+        return DreamberdBoolean(bool(re.search(pattern, string)))
+    except re.error as e:
+        raise NonFormattedError(f"Invalid regex pattern: {e}")
+
+
+def db_regex_findall(arg: DreamberdString) -> DreamberdList:
+    if not isinstance(arg, DreamberdString):
+        raise NonFormattedError("regex_findall requires pattern,string")
+
+    parts = arg.value.split(",", 1)
+    if len(parts) != 2:
+        raise NonFormattedError("regex_findall requires pattern,string")
+
+    pattern, string = parts
+    import re
+
+    try:
+        matches = re.findall(pattern, string)
+        return DreamberdList([DreamberdString(match) for match in matches])
+    except re.error as e:
+        raise NonFormattedError(f"Invalid regex pattern: {e}")
+
+
+def db_regex_replace(arg: DreamberdString) -> DreamberdString:
+    if not isinstance(arg, DreamberdString):
+        raise NonFormattedError("regex_replace: pattern,replacement,string")
+
+    parts = arg.value.split(",", 2)
+    if len(parts) != 3:
+        raise NonFormattedError("regex_replace: pattern,replacement,string")
+
+    pattern, replacement, string = parts
+    import re
+
+    try:
+        result = re.sub(pattern, replacement, string)
+        return DreamberdString(result)
+    except re.error as e:
+        raise NonFormattedError(f"Invalid regex pattern: {e}")
+
+
 def db_write(path: DreamberdValue, content: DreamberdValue) -> None:
     if not isinstance(path, DreamberdString):
-        raise NonFormattedError("'read' function requires argument to be a string")
+        raise NonFormattedError("'write' requires path to be a string")
     content_str = db_to_string(content).value
     with open(path.value, "w") as f:
         f.write(content_str)
@@ -667,7 +735,8 @@ def __number_function_maker(num: int) -> BuiltinFunction:
         nonlocal num
         if not isinstance(n, DreamberdNumber):
             raise NonFormattedError(
-                f"Expected a number in the ones digit. Instead received a {type(n).__name__}"
+                f"Expected a number in the ones digit. Instead received a "
+                f"{type(n).__name__}"
             )
         return DreamberdNumber(num + n.value)
 
@@ -686,13 +755,21 @@ MATH_FUNCTION_KEYWORDS = {
                         if any(
                             [
                                 arg[0] == "*" and len(arg) > 1
-                                for arg in v.__text_signature__[1:-1].split(", ")
+                                for arg in (
+                                    v.__text_signature__[1:-1].split(", ")
+                                    if v.__text_signature__
+                                    else []
+                                )
                             ]
                         )
                         else len(
                             [
                                 arg
-                                for arg in v.__text_signature__[1:-1].split(", ")
+                                for arg in (
+                                    v.__text_signature__[1:-1].split(", ")
+                                    if v.__text_signature__
+                                    else []
+                                )
                                 if arg.isalpha()
                             ]
                         )
@@ -722,6 +799,9 @@ BUILTIN_FUNCTION_KEYWORDS = {
     "sleep": Name("sleep", BuiltinFunction(1, db_sleep)),
     "read": Name("read", BuiltinFunction(-1, db_read)),
     "write": Name("write", BuiltinFunction(-1, db_write)),
+    "regex_match": Name("regex_match", BuiltinFunction(1, db_regex_match)),
+    "regex_findall": Name("regex_findall", BuiltinFunction(1, db_regex_findall)),
+    "regex_replace": Name("regex_replace", BuiltinFunction(1, db_regex_replace)),
 }
 BUILTIN_VALUE_KEYWORDS = {
     "true": Name("true", DreamberdBoolean(True)),

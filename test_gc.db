@@ -1,0 +1,2 @@
+const var temp_var<2s> = "temporary"!
+print(temp_var)!
