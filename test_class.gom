@@ -1,0 +1,11 @@
+// Test class system
+class Player {
+    name = "Bob"!
+    health = 100!
+}
+
+print("Class created")
+
+// In Gulf of Mexico, classes are singletons - only one instance can exist
+// So Player is both the class and the single instance
+print(Player)

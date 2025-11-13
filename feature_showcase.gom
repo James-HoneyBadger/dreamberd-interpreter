@@ -1,0 +1,5 @@
+// Gulf of Mexico interpreter - Feature showcase
+x = 42!
+class Player {}!
+delete 3!
+when (x == 42) { print("Working!") }!

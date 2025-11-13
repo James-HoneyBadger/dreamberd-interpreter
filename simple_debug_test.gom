@@ -1,0 +1,37 @@
+// Simple test to isolate the issue
+
+print "=== Simple Test ==="!
+
+// 1. Variable declarations
+print "1. Testing variables..."!
+var x = 42!
+const pi = 3.14159!
+var message = "Hello Gulf of Mexico"!
+var flag = true!
+
+print "Variables declared: x =" x ", pi =" pi ", message =" message ", flag =" flag!
+
+// 2. Array operations
+print "2. Testing arrays..."!
+var numbers = [1, 2, 3, 4, 5]!
+var mixed = [42, "text", true, [1, 2]]!
+print "numbers array:" numbers!
+print "mixed array:" mixed!
+
+// 3. Mathematical operations  
+print "3. Testing mathematical operations..."!
+var sum = x + 8!
+var product = x * 2!
+var quotient = x / 6!
+print "x + 8 =" sum ", x * 2 =" product ", x / 6 =" quotient!
+
+// 4. String operations
+print "4. Testing string operations..."!
+var greeting = "Hello" + " " + "World"!
+print "String concatenation:" greeting!
+
+// 5. Boolean operations
+print "5. Testing boolean operations..."!
+var and_result = true & false!
+var or_result = true | false!
+print "true & false =" and_result ", true | false =" or_result!

@@ -1,0 +1,4 @@
+// Test number as variable name
+print "Testing number as variable name..."!
+const const 1 = "test"!
+print 1!

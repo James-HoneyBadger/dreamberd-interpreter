@@ -1,0 +1,169 @@
+// Gulf of Mexico Specification Compliance Test (Adapted for Current Implementation)
+// This test verifies implemented features against the original language specification
+// Based on: https://github.com/TodePond/GulfOfMexico---e-acc
+
+print "=== Gulf of Mexico Specification Compliance Test ==="!
+
+// 1. EXCLAMATION MARKS - End every statement with !
+print "1. Testing exclamation mark terminators..."!
+print "Statement termination working correctly"!
+
+// 2. DECLARATIONS - Four types of declaration
+print "2. Testing variable declarations..."!
+const const name1 = "Luke"!  // Constant constant - can't be changed
+const var name2 = "Luke"!    // Constant variable - can be edited but not reassigned  
+var const name3 = "Luke"!    // Variable constant - can be reassigned but not edited
+var var name4 = "Luke"!      // Variable variable - can be reassigned and edited
+
+print "Declared all four types:" name1 name2 name3 name4!
+
+// 3. NAMING - Unicode and special characters
+print "3. Testing naming flexibility..."!
+const const firstAlphabetLetter = "A"!
+var const specialName_123 = "underscore and numbers"!
+print "Unicode naming:" firstAlphabetLetter!
+print "Special characters:" specialName_123!
+
+// 4. ARRAYS - Start at index -1  
+print "4. Testing arrays starting at -1..."!
+const const scores = [3, 2, 5]!
+print "scores[-1]:" scores[-1]!  // Should be 3
+print "scores[0]:" scores[0]!    // Should be 2  
+print "scores[1]:" scores[1]!    // Should be 5
+
+// 5. FLOAT INDEXING - Arrays can use float indices
+print "5. Testing float array indexing..."!
+var var testArray = [1, 2, 3]!
+testArray[0.5] = 99!
+print "Array after float index insertion:" testArray!
+
+// 6. BOOLEANS - true, false, maybe
+print "6. Testing boolean values..."!
+var bool1 = true!
+var bool2 = false!
+var bool3 = maybe!
+print "Booleans:" bool1 bool2 bool3!
+
+// 7. ARITHMETIC with basic operations
+print "7. Testing arithmetic operations..."!
+var result1 = 1 + 2!  
+var result2 = 6 * 7!  
+var result3 = 15 / 3!
+var result4 = 10 - 4!
+print "1 + 2 =" result1!
+print "6 * 7 =" result2!
+print "15 / 3 =" result3!
+print "10 - 4 =" result4!
+
+// 8. EXPONENTIATION with ^
+print "8. Testing exponentiation..."!
+var exp1 = 2^3!  // Should be 8
+var exp2 = 3^2!  // Should be 9
+print "2^3 =" exp1!
+print "3^2 =" exp2!
+
+// 9. EQUALITY operators
+print "9. Testing equality operators..."!  
+var equal1 = 5 == 5!      // Should be true  
+var equal2 = 5 == 6!      // Should be false
+var notEqual1 = 5 != 6!   // Should be true
+var notEqual2 = 5 != 5!   // Should be false
+print "5 == 5:" equal1!
+print "5 == 6:" equal2!
+print "5 != 6:" notEqual1!
+print "5 != 5:" notEqual2!
+
+// 10. COMPARISON operators
+print "10. Testing comparison operators..."!
+var greater = 10 > 5!     // Should be true
+var less = 3 < 8!         // Should be true  
+var greaterEq = 7 >= 7!   // Should be true
+var lessEq = 4 <= 9!      // Should be true
+print "10 > 5:" greater!
+print "3 < 8:" less!
+print "7 >= 7:" greaterEq!
+print "4 <= 9:" lessEq!
+
+// 11. FUNCTIONS with flexible naming
+print "11. Testing function declarations..."!
+function fullAdd(a, b) {
+    return a + b!
+}!
+
+func shortMultiply(a, b) {
+    return a * b!
+}!
+
+fun subtract(a, b) {
+    return a - b!
+}!
+
+fn divide(a, b) {
+    return a / b!
+}!
+
+var sum = fullAdd(5, 3)!
+var product = shortMultiply(4, 2)!
+var difference = subtract(10, 4)!
+var quotient = divide(15, 3)!
+
+print "Functions: add=" sum ", multiply=" product ", subtract=" difference ", divide=" quotient!
+
+// 12. DIVIDING BY ZERO returns undefined
+print "12. Testing division by zero..."!
+var divZero = 5 / 0!
+print "5 / 0 =" divZero!  // Should print undefined
+
+// 13. STRINGS with multiple quote types
+print "13. Testing string quote variations..."!
+var singleQuote = 'Hello'!
+var doubleQuote = "World"!
+var tripleQuote = '''Triple quotes'''!
+print "String types:" singleQuote doubleQuote tripleQuote!
+
+// 14. STRING INTERPOLATION with currency symbols
+print "14. Testing string interpolation..."!
+const const worldName = "Gulf of Mexico"!
+var interpolated1 = "Hello ${worldName}!"!
+print interpolated1!
+
+// 15. CONSTRUCTOR calls
+print "15. Testing constructor calls..."!
+var obj1 = new Object()!
+var obj2 = new TestClass()!
+print "Constructors called successfully"!
+
+// 16. EXPORT/IMPORT functionality
+print "16. Testing export functionality..."!
+export name1, scores, worldName!
+print "Variables exported successfully"!
+
+// 17. REVERSE statements
+print "17. Testing reverse statements..."!
+var reverseTest = 100!
+print "Before reverse:" reverseTest!
+reverseTest = 200!
+print "After change:" reverseTest!
+reverse!
+print "After reverse:" reverseTest!  // Should be back to 100
+
+// 18. BOOLEAN OPERATIONS (& for AND, | for OR)  
+print "18. Testing boolean operations..."!
+var andResult = true & false!
+var orResult = true | false!
+print "true & false =" andResult!
+print "true | false =" orResult!
+
+// 19. STRING CONCATENATION
+print "19. Testing string concatenation..."!
+var hello = "Hello"!
+var world = "World"!
+var greeting = hello + " " + world + "!"!
+print "String concatenation:" greeting!
+
+// 20. MIXED DATA TYPE ARRAYS
+print "20. Testing mixed arrays..."!
+var mixedArray = [42, "text", true, [1, 2, 3]]!
+print "Mixed array:" mixedArray!
+
+print "=== Specification Compliance Test Complete ==="!

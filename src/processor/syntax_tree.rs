@@ -261,6 +261,7 @@ fn parse_variable_declaration(
     
     let name_token = match &tokens[*pos].token_type {
         crate::base::TokenType::Name => tokens[*pos].clone(),
+        crate::base::TokenType::Number => tokens[*pos].clone(), // Numbers can be variable names in Gulf of Mexico
         _ => {
             return Err(crate::base::DreamberdError::NonFormattedError(
                 format!("Expected variable name, got {:?}", tokens[*pos].token_type),
@@ -431,6 +432,16 @@ fn parse_class_declaration(
 
     let body = parse_statement_block(tokens, pos, filename, code)?;
 
+    // Consume the closing brace
+    if *pos < tokens.len() && tokens[*pos].token_type == crate::base::TokenType::RCurly {
+        *pos += 1;
+    }
+
+    // Consume trailing ! if present (statement terminator)
+    if *pos < tokens.len() && tokens[*pos].token_type == crate::base::TokenType::Bang {
+        *pos += 1;
+    }
+
     Ok(CodeStatement::ClassDeclaration(ClassDeclaration {
         name,
         body,
@@ -591,6 +602,11 @@ fn parse_delete_statement(
 
     let expr_tokens = collect_expression_tokens(tokens, pos);
     let target = crate::processor::expression_tree::build_expression_tree(filename, expr_tokens, code)?;
+
+    // Consume trailing ! if present (statement terminator)
+    if *pos < tokens.len() && tokens[*pos].token_type == crate::base::TokenType::Bang {
+        *pos += 1;
+    }
 
     Ok(CodeStatement::DeleteStatement(DeleteStatement {
         target,
@@ -798,13 +814,14 @@ fn collect_expression_tokens_until(
 /// Collect tokens for an expression until statement end
 fn collect_expression_tokens(tokens: &[Token], pos: &mut usize) -> Vec<Token> {
     let stop_tokens = &[
-        crate::base::TokenType::Bang, 
         crate::base::TokenType::Question, 
-        crate::base::TokenType::Semicolon,
+        crate::base::TokenType::Newline, // Stop at newlines - end of statement
+        // Note: Semicolon handled specially - NOT operator in expressions, statement terminator in statements
         crate::base::TokenType::RCurly, // End of block
+        // Bang (!) is NOT a stop token - it's part of confidence levels in Gulf of Mexico
     ];
     
-    let mut expr_tokens = Vec::new();
+    let mut expr_tokens: Vec<Token> = Vec::new();
     let mut paren_depth = 0;
     let mut bracket_depth = 0;
     let mut brace_depth = 0;
@@ -817,6 +834,22 @@ fn collect_expression_tokens(tokens: &[Token], pos: &mut usize) -> Vec<Token> {
         if paren_depth == 0 && bracket_depth == 0 && brace_depth == 0 {
             if stop_tokens.contains(&token.token_type) {
                 break;
+            }
+            // Handle semicolon: if it's at the start of an expression or preceded by certain tokens, it's a NOT operator
+            // Otherwise, it's a statement terminator
+            if token.token_type == crate::base::TokenType::Semicolon {
+                // Check if this is a NOT operator vs statement terminator
+                if expr_tokens.is_empty() || 
+                   (expr_tokens.len() > 0 && matches!(expr_tokens.last().unwrap().token_type, 
+                    crate::base::TokenType::LParen | crate::base::TokenType::Comma | 
+                    crate::base::TokenType::Add | crate::base::TokenType::Subtract |
+                    crate::base::TokenType::Multiply | crate::base::TokenType::Divide |
+                    crate::base::TokenType::Equal | crate::base::TokenType::EqualEqual)) {
+                    // This semicolon is likely a NOT operator, continue parsing
+                } else {
+                    // This semicolon is a statement terminator, stop parsing
+                    break;
+                }
             }
         }
 

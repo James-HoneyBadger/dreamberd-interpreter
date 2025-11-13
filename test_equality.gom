@@ -1,0 +1,4 @@
+// Simple equality test
+print "Testing equality..."!
+var result = 5 == 5!
+print result!

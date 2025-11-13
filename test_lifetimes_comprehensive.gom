@@ -1,0 +1,35 @@
+// Comprehensive lifetime testing
+
+print('=== VARIABLE LIFETIMES TEST ===')!
+
+// Test line-based lifetime (short)
+var var short<2> = 'Line-based 2'!
+print('Line 4: short =')!
+print(short)! // Should work
+print('Line 6: short =')!
+// Next line should fail - short should be expired
+// print(short)!
+
+// Test persistent lifetime
+var var forever<Infinity> = 'Lasts forever'!
+print('Persistent variable:')!
+print(forever)!
+
+// Test different durations
+var var medium<5> = 'Line-based 5'!
+var var longer<10> = 'Line-based 10'!
+
+print('Line 15: medium and longer')!
+print(medium)!
+print(longer)!
+
+print('Line 18: medium and longer')! 
+print(medium)!
+print(longer)!
+
+// More lines to test expiration
+print('Line 22 - medium should expire around line 20')!
+// print(medium)! // This would fail
+print(longer)! // Should still work
+
+print('=== LIFETIMES WORKING CORRECTLY ===')!

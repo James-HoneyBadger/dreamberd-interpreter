@@ -1,0 +1,10 @@
+// Test reverse statement functionality
+
+var x = 10!
+print "Initial x is:" x!
+
+x = 20!
+print "x changed to:" x!
+
+reverse!
+print "After reverse, x is:" x!

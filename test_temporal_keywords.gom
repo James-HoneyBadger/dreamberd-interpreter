@@ -1,0 +1,29 @@
+// Testing previous/current/next keywords
+
+var var count = 5!
+print('Initial count:')!
+print(count)!
+
+count = 10!
+print('Updated count:')!
+print(current count)!
+
+print('Previous count:')! 
+print(previous count)!
+
+count = 15!
+print('Count after second update:')!
+print(current count)!
+print('Previous count (should be 10):')!
+print(previous count)!
+
+// Test with pattern for next prediction
+var var sequence = 1!
+sequence = 2!
+sequence = 3! 
+print('Current sequence value:')!
+print(current sequence)!
+print('Previous sequence value:')!
+print(previous sequence)!
+print('Predicted next sequence value:')!
+print(next sequence)!

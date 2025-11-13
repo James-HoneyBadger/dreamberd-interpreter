@@ -1,0 +1,23 @@
+// Testing various number variable names as per Gulf of Mexico specification
+
+// Test different number formats
+const const 42 = 'answer'!
+const const 3.14 = 'pi'!
+const const 0 = 'zero'!
+const const -5 = 'negative'!
+const const 123.456 = 'decimal'!
+
+// Test operations with number variables
+print(42)!
+print(3.14)!
+print(0)!
+print(-5)!
+print(123.456)!
+
+// Test reassignment
+const const 42 = 'new answer'!
+print(42)!
+
+// Test in expressions
+const const result = 42 + ' is the ' + 3.14!
+print(result)!

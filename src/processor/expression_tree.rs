@@ -270,8 +270,27 @@ fn parse_primary(
 
     match token.token_type {
         crate::base::TokenType::Name => {
+            // Check for temporal keywords (previous, current, next)
+            if matches!(token.value.as_str(), "previous" | "current" | "next") {
+                // Parse temporal keyword: previous variable, current variable, next variable
+                if *pos >= tokens.len() || tokens[*pos].token_type != crate::base::TokenType::Name {
+                    return Err(crate::base::DreamberdError::NonFormattedError(
+                        format!("Expected variable name after '{}'", token.value)
+                    ));
+                }
+                
+                let var_name = tokens[*pos].clone();
+                *pos += 1; // consume variable name
+                
+                // Create a special function call node to represent temporal access
+                let func_node = FunctionNode::new(
+                    token.clone(), 
+                    vec![ExpressionTreeNode::Value(ValueNode::new(var_name))]
+                );
+                return Ok(ExpressionTreeNode::Function(func_node));
+            }
             // Check if this is the 'new' keyword for constructor calls
-            if token.value == "new" {
+            else if token.value == "new" {
                 // Parse constructor call: new ClassName(args)
                 if *pos >= tokens.len() || tokens[*pos].token_type != crate::base::TokenType::Name {
                     return Err(crate::base::DreamberdError::NonFormattedError(
@@ -320,10 +339,10 @@ fn parse_primary(
                 
                 // Parse arguments separated by spaces until statement end
                 let stop_tokens = &[
-                    crate::base::TokenType::Bang, 
                     crate::base::TokenType::Question, 
-                    crate::base::TokenType::Semicolon,
+                    // Note: Semicolon removed to allow NOT operator in function arguments
                     crate::base::TokenType::RCurly, // End of block
+                    // Note: Bang removed - it's part of confidence levels, not a stop token
                 ];
                 
                 // Parse each argument as a separate primary expression
@@ -364,7 +383,16 @@ fn parse_primary(
             }
         }
         crate::base::TokenType::String | crate::base::TokenType::Number => {
-            Ok(ExpressionTreeNode::Value(ValueNode::new(token.clone())))
+            let value_node = ExpressionTreeNode::Value(ValueNode::new(token.clone()));
+            
+            // Check for confidence level indicators (!)
+            while *pos < tokens.len() && tokens[*pos].token_type == crate::base::TokenType::Bang {
+                *pos += 1; // consume '!'
+                // For now, we just consume the confidence indicators and don't store them
+                // In a full implementation, this would affect the confidence level of the value
+            }
+            
+            Ok(value_node)
         }
         crate::base::TokenType::InterpolatedString => {
             // Handle interpolated string - for now, treat as regular value node

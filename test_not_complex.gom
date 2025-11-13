@@ -1,0 +1,27 @@
+// Testing more complex NOT operator usage
+
+// Test NOT with different value types
+const const num = 5!
+print('NOT of number 5:')!
+print(;num)!
+
+const const str = 'hello'!
+print('NOT of string "hello":')!
+print(;str)!
+
+// Test nested NOT operations
+const const val = true!
+print('Double NOT of true (;;true):')!
+print(;;val)!
+
+// Test NOT in compound expressions
+const const a = true!
+const const b = false!
+const const result = ;a & ;b!
+print('NOT a AND NOT b:')!
+print(result)!
+
+// Test NOT with function calls
+print('NOT of print result (should be NOT of undefined):')!
+const const notUndefined = ;print('This prints something')!
+print(notUndefined)!

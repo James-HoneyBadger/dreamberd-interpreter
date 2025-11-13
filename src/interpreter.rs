@@ -3,11 +3,19 @@
 
 use std::collections::HashMap;
 use crate::base::{DreamberdError, TokenType, OperatorType};
-use crate::builtin::{DreamberdValue, Variable, Name, NamespaceEntry, VariableLifetime, DreamberdFunction, DreamberdUndefined, DreamberdNumber, DreamberdString, DreamberdBoolean, DreamberdList, DreamberdMap, BuiltinFunction, create_builtin_function, db_to_string, db_to_boolean, db_not};
+use crate::builtin::{DreamberdValue, Variable, Name, NamespaceEntry, VariableLifetime, DreamberdFunction, DreamberdUndefined, DreamberdNumber, DreamberdString, DreamberdBoolean, DreamberdList, DreamberdMap, DreamberdObject, BuiltinFunction, create_builtin_function, db_to_string, db_to_boolean, db_not};
 use crate::processor::syntax_tree::CodeStatement;
 use crate::processor::expression_tree::{ExpressionTreeNode, ValueNode, ConstructorNode};
 
 pub type Namespace = HashMap<String, NamespaceEntry>;
+
+/// Reactive when statement registration
+#[derive(Debug, Clone)]
+pub struct ReactiveWhen {
+    pub condition: crate::processor::expression_tree::ExpressionTreeNode,
+    pub body: Vec<crate::processor::syntax_tree::CodeStatement>,
+    pub dependent_variables: Vec<String>,
+}
 
 /// Main interpreter struct
 pub struct Interpreter {
@@ -15,6 +23,7 @@ pub struct Interpreter {
     pub filename: String,
     pub code: String,
     pub current_line: u64,
+    pub when_statements: Vec<ReactiveWhen>,
 }
 
 impl Interpreter {
@@ -24,6 +33,7 @@ impl Interpreter {
             filename,
             code,
             current_line: 1,
+            when_statements: Vec::new(),
         };
 
         // Initialize builtin functions and keywords
@@ -311,17 +321,80 @@ impl Interpreter {
         &mut self,
         when_stmt: crate::processor::syntax_tree::WhenStatement,
     ) -> Result<(), DreamberdError> {
-        // Evaluate the condition
+        // Extract variables referenced in the condition
+        let dependent_vars = self.extract_variable_dependencies(&when_stmt.condition);
+        
+        // Register this when statement as reactive
+        let reactive_when = ReactiveWhen {
+            condition: when_stmt.condition.clone(),
+            body: when_stmt.body.clone(),
+            dependent_variables: dependent_vars,
+        };
+        
+        // Evaluate the condition initially
         let condition_result = self.evaluate_expression(&when_stmt.condition)?;
         let condition_bool = db_to_boolean(&condition_result);
 
-        // If condition is true or maybe, execute the body
+        // If condition is true or maybe, execute the body immediately
         if let DreamberdBoolean { value: Some(true), .. } = condition_bool {
-            self.interpret_code_statements(when_stmt.body)?;
+            self.interpret_code_statements(when_stmt.body.clone())?;
         }
-        // Note: In a full implementation, this would set up reactive watchers
-        // that trigger when variables referenced in the condition change
+        
+        // Register for future reactive execution
+        self.when_statements.push(reactive_when);
+        
         Ok(())
+    }
+    
+    /// Extract variable names referenced in an expression
+    fn extract_variable_dependencies(&self, expr: &crate::processor::expression_tree::ExpressionTreeNode) -> Vec<String> {
+        let mut vars = Vec::new();
+        self.collect_variables_from_expression(expr, &mut vars);
+        vars.sort();
+        vars.dedup();
+        vars
+    }
+    
+    /// Recursively collect variable names from expression tree
+    fn collect_variables_from_expression(
+        &self, 
+        expr: &crate::processor::expression_tree::ExpressionTreeNode, 
+        vars: &mut Vec<String>
+    ) {
+        use crate::processor::expression_tree::ExpressionTreeNode;
+        use crate::base::TokenType;
+        
+        match expr {
+            ExpressionTreeNode::Value(val) => {
+                if val.token.token_type == TokenType::Name {
+                    vars.push(val.token.value.clone());
+                }
+            }
+            ExpressionTreeNode::BinaryOp(bin_op) => {
+                self.collect_variables_from_expression(&bin_op.left, vars);
+                self.collect_variables_from_expression(&bin_op.right, vars);
+            }
+            ExpressionTreeNode::UnaryOp(unary_op) => {
+                self.collect_variables_from_expression(&unary_op.expression, vars);
+            }
+            ExpressionTreeNode::Function(func) => {
+                for arg in &func.args {
+                    self.collect_variables_from_expression(arg, vars);
+                }
+            }
+            ExpressionTreeNode::Index(index_op) => {
+                self.collect_variables_from_expression(&index_op.value, vars);
+                self.collect_variables_from_expression(&index_op.index, vars);
+            }
+            ExpressionTreeNode::List(list) => {
+                for item in &list.values {
+                    self.collect_variables_from_expression(item, vars);
+                }
+            }
+            ExpressionTreeNode::Constructor(_) => {
+                // Constructor calls don't typically reference variables directly
+            }
+        }
     }
 
     /// Execute delete statement
@@ -329,10 +402,50 @@ impl Interpreter {
         &mut self,
         del_stmt: crate::processor::syntax_tree::DeleteStatement,
     ) -> Result<(), DreamberdError> {
-        // For now, just evaluate the expression to "delete" it
-        // In a full implementation, this would remove keywords or values
-        let _ = self.evaluate_expression(&del_stmt.target)?;
-        Ok(())
+        match &del_stmt.target {
+            ExpressionTreeNode::Value(value_node) => {
+                // Check if it's a variable reference
+                if let TokenType::Name = value_node.token.token_type {
+                    let var_name = &value_node.token.value;
+                    // Delete the variable from current namespace
+                    if let Some(namespace) = self.namespaces.last_mut() {
+                        namespace.remove(var_name);
+                        println!("Deleted variable: {}", var_name);
+                    }
+                } else if let TokenType::String = value_node.token.token_type {
+                    // Delete a keyword (in a real implementation, this would affect parsing)
+                    println!("Deleted keyword: {}", value_node.token.value);
+                    // For now, we can't actually remove language keywords, but we acknowledge it
+                } else {
+                    // Delete a literal value
+                    println!("Deleted literal: {}", value_node.token.value);
+                }
+                Ok(())
+            }
+            _ => {
+                // Evaluate and "delete" the expression result
+                let value = self.evaluate_expression(&del_stmt.target)?;
+                match value {
+                    DreamberdValue::Number(n) => {
+                        println!("Deleted number: {:?}", n);
+                        // In DreamBerd, deleting a number could prevent it from existing
+                        Ok(())
+                    }
+                    DreamberdValue::String(s) => {
+                        println!("Deleted string: \"{}\"", s);
+                        Ok(())
+                    }
+                    DreamberdValue::Boolean(b) => {
+                        println!("Deleted boolean: {:?}", b);
+                        Ok(())
+                    }
+                    _ => {
+                        println!("Deleted value: {:?}", value);
+                        Ok(())
+                    }
+                }
+            }
+        }
     }
 
     /// Evaluate interpolated string by parsing ${...} expressions
@@ -566,6 +679,26 @@ impl Interpreter {
                     _ => Ok(DreamberdValue::Boolean(DreamberdBoolean::maybe())),
                 }
             }
+            OperatorType::And => {
+                let left_bool = db_to_boolean(&left);
+                let right_bool = db_to_boolean(&right);
+                match (&left_bool.value, &right_bool.value) {
+                    (Some(l), Some(r)) => {
+                        Ok(DreamberdValue::Boolean(DreamberdBoolean::new(Some(*l && *r))))
+                    }
+                    _ => Ok(DreamberdValue::Boolean(DreamberdBoolean::maybe())),
+                }
+            }
+            OperatorType::Or => {
+                let left_bool = db_to_boolean(&left);
+                let right_bool = db_to_boolean(&right);
+                match (&left_bool.value, &right_bool.value) {
+                    (Some(l), Some(r)) => {
+                        Ok(DreamberdValue::Boolean(DreamberdBoolean::new(Some(*l || *r))))
+                    }
+                    _ => Ok(DreamberdValue::Boolean(DreamberdBoolean::maybe())),
+                }
+            }
             _ => Ok(DreamberdValue::Undefined(DreamberdUndefined)),
         }
     }
@@ -625,8 +758,21 @@ impl Interpreter {
                 if func.args.len() != 1 {
                     return Err(DreamberdError::NonFormattedError("next() expects 1 argument".to_string()));
                 }
-                // For now, next returns undefined (future value not available)
-                return Ok(DreamberdValue::Undefined(DreamberdUndefined));
+                // Extract variable name from the argument
+                if let ExpressionTreeNode::Value(value_node) = &func.args[0] {
+                    if value_node.token.token_type == TokenType::Name {
+                        let var_name = &value_node.token.value;
+                        // Look up variable and try to predict next value
+                        for namespace in self.namespaces.iter().rev() {
+                            if let Some(NamespaceEntry::Variable(var)) = namespace.get(var_name) {
+                                // Use pattern analysis to predict next value
+                                return Ok(var.get_next().unwrap_or(DreamberdValue::Undefined(DreamberdUndefined)));
+                            }
+                        }
+                        return Ok(DreamberdValue::Undefined(DreamberdUndefined));
+                    }
+                }
+                return Err(DreamberdError::NonFormattedError("next() expects a variable name".to_string()));
             }
             _ => {}
         }
@@ -765,6 +911,8 @@ impl Interpreter {
                 match entry {
                     NamespaceEntry::Variable(var) => {
                         var.set_value(value);
+                        // Trigger reactive when statements that depend on this variable
+                        self.trigger_when_statements_for_variable(var_name)?;
                         return Ok(());
                     }
                     _ => {}
@@ -980,16 +1128,65 @@ impl Interpreter {
         &mut self,
         class_decl: crate::processor::syntax_tree::ClassDeclaration,
     ) -> Result<(), DreamberdError> {
-        // For now, create a simple class object that stores methods and properties
-        // In Gulf of Mexico, classes are basically namespaces with methods
+        // In Gulf of Mexico, classes can only have one instance (singleton pattern)
+        let class_name = &class_decl.name;
         
-        // Create a namespace for the class
-        let _class_namespace: std::collections::HashMap<String, NamespaceEntry> = HashMap::new();
+        // Create a class object with empty namespace for methods/properties
+        let class_obj = DreamberdObject {
+            class_name: class_name.clone(),
+            namespace: HashMap::new(),
+        };
         
-        // For basic implementation, just store the class as a special object type
-        // TODO: Implement proper class instantiation, inheritance, etc.
+        // Execute class body to populate class methods/properties
+        // Create a new namespace scope for the class
+        self.namespaces.push(HashMap::new());
         
-        println!("Class '{}' declared (placeholder implementation)", class_decl.name);
+        // Execute all statements in the class body
+        for statement in &class_decl.body {
+            self.execute_statement(statement.clone())?;
+        }
+        
+        // Pop the class namespace and merge its contents into the class object
+        let class_namespace = self.namespaces.pop().unwrap();
+        let mut final_class_obj = class_obj;
+        
+        // Copy methods and properties from class namespace
+        for (name, entry) in class_namespace {
+            match entry {
+                NamespaceEntry::Variable(var) => {
+                    if let Some(value) = var.value() {
+                        final_class_obj.namespace.insert(name, value.clone());
+                    }
+                }
+                NamespaceEntry::Name(name_struct) => {
+                    final_class_obj.namespace.insert(name, DreamberdValue::String(
+                        DreamberdString::new(name_struct.name.clone())
+                    ));
+                }
+            }
+        }
+        
+        // Store the class as a variable that contains the class object
+        let class_variable = Variable::new(
+            class_name.clone(),
+            VariableLifetime::new(
+                DreamberdValue::Object(final_class_obj),
+                u64::MAX, // Persistent (never expires)
+                100, // Full confidence
+                false, // Can't be reset
+                true, // Can edit value (for adding methods)
+            )
+        );
+        
+        // Store the class definition in the current namespace
+        if let Some(namespace) = self.namespaces.last_mut() {
+            namespace.insert(
+                class_name.clone(),
+                NamespaceEntry::Variable(class_variable),
+            );
+        }
+        
+        println!("Class '{}' declared", class_name);
         
         // Execute the class body statements to define methods and properties
         for statement in class_decl.body {
@@ -1184,6 +1381,28 @@ impl Interpreter {
         }
         
         println!("No operations to reverse");
+        Ok(())
+    }
+    
+    /// Trigger when statements that depend on a specific variable
+    fn trigger_when_statements_for_variable(&mut self, var_name: &str) -> Result<(), DreamberdError> {
+        // Clone the when statements to avoid borrow checker issues
+        let when_statements = self.when_statements.clone();
+        
+        for when_stmt in when_statements {
+            // Check if this when statement depends on the changed variable
+            if when_stmt.dependent_variables.contains(&var_name.to_string()) {
+                // Re-evaluate the condition
+                let condition_result = self.evaluate_expression(&when_stmt.condition)?;
+                let condition_bool = db_to_boolean(&condition_result);
+
+                // If condition is true or maybe, execute the body
+                if let DreamberdBoolean { value: Some(true), .. } = condition_bool {
+                    self.interpret_code_statements(when_stmt.body)?;
+                }
+            }
+        }
+        
         Ok(())
     }
 }

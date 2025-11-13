@@ -382,6 +382,42 @@ impl Variable {
     pub fn get_current(&self) -> Option<&DreamberdValue> {
         self.value()
     }
+
+    /// Predict next value based on historical pattern
+    pub fn get_next(&self) -> Option<DreamberdValue> {
+        // Simple pattern analysis for numeric values
+        if self.prev_values.len() >= 2 {
+            // Try to find a numeric pattern
+            if let (Some(DreamberdValue::Number(current)), 
+                    Some(DreamberdValue::Number(prev1)), 
+                    Some(DreamberdValue::Number(prev2))) = 
+                (self.value(), self.get_previous(0), self.get_previous(1)) {
+                
+                // Calculate the difference between last two values
+                let diff1 = current.value - prev1.value;
+                let diff2 = prev1.value - prev2.value;
+                
+                // If the differences are consistent, predict next value
+                if (diff1 - diff2).abs() < 0.001 {
+                    return Some(DreamberdValue::Number(DreamberdNumber::new(current.value + diff1)));
+                }
+            }
+        }
+        
+        // If we have at least one previous value, check for boolean patterns
+        if let (Some(DreamberdValue::Boolean(current)), 
+                Some(DreamberdValue::Boolean(prev))) = 
+            (self.value(), self.get_previous(0)) {
+            
+            // Simple toggle pattern
+            if let (Some(c), Some(p)) = (current.value, prev.value) {
+                return Some(DreamberdValue::Boolean(DreamberdBoolean::new(Some(!c))));
+            }
+        }
+        
+        // For other cases, return undefined (can't predict)
+        None
+    }
 }
 
 /// Name binding (immutable reference to a value)

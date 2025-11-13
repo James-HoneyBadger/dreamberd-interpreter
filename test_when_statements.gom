@@ -1,0 +1,30 @@
+// Testing reactive when statements
+
+var var counter = 0!
+print('Initial counter:')!
+print(counter)!
+
+// Set up a when statement that reacts to counter changes
+when (counter > 5) {
+    print('Counter exceeded 5!')!
+    print('Current value:')!
+    print(counter)!
+}!
+
+print('Incrementing counter...')!
+counter = 3!
+print('Counter is now 3')!
+
+counter = 7!
+print('Counter is now 7 (should trigger when)')!
+
+counter = 10!
+print('Counter is now 10 (should trigger when again)')!
+
+counter = 2!
+print('Counter is now 2 (should not trigger when)')!
+
+counter = 8!
+print('Counter is now 8 (should trigger when)')!
+
+print('=== WHEN STATEMENTS TEST COMPLETE ===')!
