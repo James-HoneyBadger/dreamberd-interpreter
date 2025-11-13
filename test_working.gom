@@ -1,0 +1,3 @@
+const const x = 42!
+var y = 3.14!
+const z = x!

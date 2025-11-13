@@ -1,0 +1,45 @@
+// Test basic language features to see what works
+const const x = 5!
+var var y = 10!
+const var z = 15!
+var const w = 20!
+
+print("Basic declarations:", x, y, z, w)!
+
+// Test three-boolean logic
+const const maybe_val = maybe!
+print("Maybe value:", maybe_val)!
+
+// Test function definitions  
+function test_func(a, b) {
+    print("Inside function:", a, b)!
+    return a + b!
+}!
+
+print("Function result:", test_func(3, 4))!
+
+// Test conditionals
+if (x == 5) {
+    print("Conditional works!")!
+}!
+
+// Test loops (should not exist in DreamBerd)
+// for (i = 0; i < 5; i++) {
+//     print("This should not work")!
+// }!
+
+// Test when statements (reactive)
+when (y > 8) {
+    print("Y is greater than 8!")!
+}!
+
+// Test after statements (event-driven) 
+after (2) {
+    print("This should run after 2 time units")!
+}!
+
+// Test previous/next/current
+print("Current x:", current x)!
+x = 100!
+print("Previous x:", previous x)!
+print("Current x:", current x)!

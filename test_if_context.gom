@@ -1,0 +1,5 @@
+print("Before if")!
+if true {
+    print("Inside if")!
+}!
+print("After if")!

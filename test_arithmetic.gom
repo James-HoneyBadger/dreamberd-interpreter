@@ -1,0 +1,4 @@
+const const x = 10!
+const const y = 20!
+const const sum = x + y!
+print(sum)!

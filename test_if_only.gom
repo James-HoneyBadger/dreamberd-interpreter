@@ -1,0 +1,15 @@
+// Testing if/else conditionals only
+print("=== Testing If Statements ===")!
+const const x = 5!
+
+if (x == 5) {
+    print("x equals 5!")!
+}!
+
+if (x > 10) {
+    print("x is greater than 10")!
+} else {
+    print("x is not greater than 10")!
+}!
+
+print("=== End Test ===")!

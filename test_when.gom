@@ -1,0 +1,18 @@
+// Test when statement execution
+x = 5!
+
+when (x > 3) {
+    print("x is greater than 3:", x)!
+}
+
+when (x < 2) {
+    print("x is less than 2:", x)!
+}
+
+when (true) {
+    print("This should always execute")!
+}
+
+when (false) {
+    print("This should never execute")!
+}

@@ -11,6 +11,7 @@ pub enum ExpressionTreeNode {
     UnaryOp(SingleOperatorNode),
     BinaryOp(ExpressionNode),
     Function(FunctionNode),
+    Constructor(ConstructorNode),
     Index(IndexNode),
     List(ListNode),
 }
@@ -81,6 +82,19 @@ impl FunctionNode {
     }
 }
 
+/// Constructor call node (new ClassName())
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ConstructorNode {
+    pub class_name: Token,
+    pub args: Vec<ExpressionTreeNode>,
+}
+
+impl ConstructorNode {
+    pub fn new(class_name: Token, args: Vec<ExpressionTreeNode>) -> Self {
+        ConstructorNode { class_name, args }
+    }
+}
+
 /// Index access node (array[index] or object.property)
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct IndexNode {
@@ -121,22 +135,53 @@ pub fn build_expression_tree(
         ));
     }
 
-    // Parse with operator precedence
-    parse_expression(&tokens, 0, filename, code)
+    let mut pos = 0;
+    let result = parse_expression_recursive(&tokens, &mut pos, 0, filename, code)?;
+    
+    // Make sure we consumed all tokens
+    if pos < tokens.len() {
+        return Err(crate::base::DreamberdError::NonFormattedError(
+            format!("Unexpected tokens at end of expression: {:?}", &tokens[pos..])
+        ));
+    }
+    
+    Ok(result)
 }
 
-/// Parse expression with precedence climbing
-fn parse_expression(
+/// Parse expression with precedence climbing (recursive implementation)
+fn parse_expression_recursive(
     tokens: &[Token],
+    pos: &mut usize,
     min_precedence: i32,
     filename: &str,
     code: &str,
 ) -> Result<ExpressionTreeNode, crate::base::DreamberdError> {
-    let mut pos = 0;
-    let mut left = parse_primary(tokens, &mut pos, filename, code)?;
+    let mut left = parse_primary(tokens, pos, filename, code)?;
 
-    while pos < tokens.len() {
-        let token = &tokens[pos];
+    while *pos < tokens.len() {
+        let token = &tokens[*pos];
+        
+        // Handle postfix operations (indexing) - these have highest precedence
+        if token.token_type == crate::base::TokenType::LSquare {
+            // Index operation
+            *pos += 1; // consume '['
+            let index_expr = parse_expression_recursive(tokens, pos, 0, filename, code)?;
+            
+            if *pos >= tokens.len() || tokens[*pos].token_type != crate::base::TokenType::RSquare {
+                return Err(crate::base::DreamberdError::NonFormattedError(
+                    "Expected closing bracket in index operation".to_string(),
+                ));
+            }
+            *pos += 1; // consume ']'
+            
+            left = ExpressionTreeNode::Index(IndexNode {
+                value: Box::new(left),
+                index: Box::new(index_expr),
+            });
+            continue;
+        }
+        
+        // Handle binary operators
         if !matches!(token.token_type, crate::base::TokenType::Add | 
                                       crate::base::TokenType::Subtract |
                                       crate::base::TokenType::Multiply |
@@ -144,6 +189,9 @@ fn parse_expression(
                                       crate::base::TokenType::Caret |
                                       crate::base::TokenType::Equal |
                                       crate::base::TokenType::NotEqual |
+                                      crate::base::TokenType::EqualEqual |
+                                      crate::base::TokenType::EqualEqualEqual |
+                                      crate::base::TokenType::EqualEqualEqualEqual |
                                       crate::base::TokenType::LessThan |
                                       crate::base::TokenType::GreaterThan |
                                       crate::base::TokenType::LessEqual |
@@ -161,6 +209,9 @@ fn parse_expression(
             crate::base::TokenType::Caret => crate::base::OperatorType::Exp,
             crate::base::TokenType::Equal => crate::base::OperatorType::E,
             crate::base::TokenType::NotEqual => crate::base::OperatorType::Ne,
+            crate::base::TokenType::EqualEqual => crate::base::OperatorType::Ee,
+            crate::base::TokenType::EqualEqualEqual => crate::base::OperatorType::Eee,
+            crate::base::TokenType::EqualEqualEqualEqual => crate::base::OperatorType::Eeee,
             crate::base::TokenType::LessThan => crate::base::OperatorType::Lt,
             crate::base::TokenType::GreaterThan => crate::base::OperatorType::Gt,
             crate::base::TokenType::LessEqual => crate::base::OperatorType::Le,
@@ -175,8 +226,8 @@ fn parse_expression(
             break;
         }
 
-        pos += 1;
-        let right = parse_expression(tokens, precedence + 1, filename, code)?;
+        *pos += 1; // consume operator
+        let right = parse_expression_recursive(tokens, pos, precedence + 1, filename, code)?;
         left = ExpressionTreeNode::BinaryOp(ExpressionNode::new(left, right, op, token.clone()));
     }
 
@@ -219,8 +270,73 @@ fn parse_primary(
 
     match token.token_type {
         crate::base::TokenType::Name => {
+            // Check if this is the 'new' keyword for constructor calls
+            if token.value == "new" {
+                // Parse constructor call: new ClassName(args)
+                if *pos >= tokens.len() || tokens[*pos].token_type != crate::base::TokenType::Name {
+                    return Err(crate::base::DreamberdError::NonFormattedError(
+                        "Expected class name after 'new'".to_string(),
+                    ));
+                }
+                
+                let class_name = tokens[*pos].clone();
+                *pos += 1; // consume class name
+                
+                // Check for constructor arguments
+                if *pos < tokens.len() && tokens[*pos].token_type == crate::base::TokenType::LParen {
+                    *pos += 1; // consume '('
+                    let mut args = Vec::new();
+
+                    // Parse arguments
+                    while *pos < tokens.len() && tokens[*pos].token_type != crate::base::TokenType::RParen {
+                        if !args.is_empty() {
+                            if tokens[*pos].token_type == crate::base::TokenType::Comma {
+                                *pos += 1;
+                            }
+                        }
+                        let arg = parse_expression_recursive(tokens, pos, 0, filename, code)?;
+                        args.push(arg);
+                    }
+
+                    if *pos >= tokens.len() || tokens[*pos].token_type != crate::base::TokenType::RParen {
+                        return Err(crate::base::DreamberdError::NonFormattedError(
+                            "Expected closing parenthesis in constructor call".to_string(),
+                        ));
+                    }
+                    *pos += 1; // consume ')'
+
+                    Ok(ExpressionTreeNode::Constructor(ConstructorNode::new(class_name, args)))
+                } else {
+                    return Err(crate::base::DreamberdError::NonFormattedError(
+                        "Expected parentheses after constructor class name".to_string(),
+                    ));
+                }
+            }
+            // Check if this is a special function that can be called without parentheses (like 'print')
+            else if token.value == "print" && *pos < tokens.len() && 
+                     !matches!(tokens[*pos].token_type, crate::base::TokenType::LParen) {
+                // Parse print statement without parentheses: print arg1 arg2 arg3
+                let mut args = Vec::new();
+                
+                // Parse arguments separated by spaces until statement end
+                let stop_tokens = &[
+                    crate::base::TokenType::Bang, 
+                    crate::base::TokenType::Question, 
+                    crate::base::TokenType::Semicolon,
+                    crate::base::TokenType::RCurly, // End of block
+                ];
+                
+                // Parse each argument as a separate primary expression
+                while *pos < tokens.len() && !stop_tokens.contains(&tokens[*pos].token_type) {
+                    // Parse one argument (literal, variable, etc.)
+                    let arg_expr = parse_primary(tokens, pos, filename, code)?;
+                    args.push(arg_expr);
+                }
+                
+                Ok(ExpressionTreeNode::Function(FunctionNode::new(token.clone(), args)))
+            }
             // Check if this is a function call
-            if *pos < tokens.len() && tokens[*pos].token_type == crate::base::TokenType::LParen {
+            else if *pos < tokens.len() && tokens[*pos].token_type == crate::base::TokenType::LParen {
                 *pos += 1; // consume '('
                 let mut args = Vec::new();
 
@@ -231,7 +347,8 @@ fn parse_primary(
                             *pos += 1;
                         }
                     }
-                    args.push(parse_expression(tokens, 0, filename, code)?);
+                    let arg = parse_expression_recursive(tokens, pos, 0, filename, code)?;
+                    args.push(arg);
                 }
 
                 if *pos >= tokens.len() || tokens[*pos].token_type != crate::base::TokenType::RParen {
@@ -249,6 +366,11 @@ fn parse_primary(
         crate::base::TokenType::String | crate::base::TokenType::Number => {
             Ok(ExpressionTreeNode::Value(ValueNode::new(token.clone())))
         }
+        crate::base::TokenType::InterpolatedString => {
+            // Handle interpolated string - for now, treat as regular value node
+            // The interpolation logic will be handled in the interpreter
+            Ok(ExpressionTreeNode::Value(ValueNode::new(token.clone())))
+        }
         crate::base::TokenType::LSquare => {
             // Parse list literal
             let mut values = Vec::new();
@@ -258,7 +380,8 @@ fn parse_primary(
                         *pos += 1;
                     }
                 }
-                values.push(parse_expression(tokens, 0, filename, code)?);
+                let value = parse_expression_recursive(tokens, pos, 0, filename, code)?;
+                values.push(value);
             }
 
             if *pos >= tokens.len() || tokens[*pos].token_type != crate::base::TokenType::RSquare {
@@ -272,7 +395,7 @@ fn parse_primary(
         }
         crate::base::TokenType::LParen => {
             // Parentheses - parse subexpression
-            let expr = parse_expression(tokens, 0, filename, code)?;
+            let expr = parse_expression_recursive(tokens, pos, 0, filename, code)?;
             if *pos >= tokens.len() || tokens[*pos].token_type != crate::base::TokenType::RParen {
                 return Err(crate::base::DreamberdError::NonFormattedError(
                     "Expected closing parenthesis".to_string(),
@@ -302,6 +425,7 @@ pub fn get_expr_first_token(expr: &ExpressionTreeNode) -> Option<&Token> {
         ExpressionTreeNode::UnaryOp(op) => Some(&op.operator),
         ExpressionTreeNode::BinaryOp(op) => get_expr_first_token(&op.left),
         ExpressionTreeNode::Function(f) => Some(&f.name),
+        ExpressionTreeNode::Constructor(c) => Some(&c.class_name),
         ExpressionTreeNode::Index(i) => get_expr_first_token(&i.value),
         ExpressionTreeNode::List(_) => None,
     }

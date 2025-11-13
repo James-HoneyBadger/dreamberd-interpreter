@@ -1,0 +1,13 @@
+import exported_number!
+import exported_string!
+import exported_bool!
+import exported_array!
+
+print "Imported number:"!
+print myNumber!
+print "Imported string:"!  
+print myString!
+print "Imported boolean:"!
+print myBool!
+print "Imported array:"!
+print myArray!

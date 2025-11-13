@@ -18,7 +18,7 @@ fn add_token(
 /// Get effective whitespace value for a character
 fn get_effective_whitespace_value(ch: char) -> &'static str {
     match ch {
-        ' ' | '(' => " ",
+        ' ' => " ",
         '\t' => "\t",
         _ => "",
     }
@@ -155,6 +155,34 @@ pub fn tokenize(filename: &str, code: &str) -> Result<Vec<Token>, DreamberdError
                 if curr + 1 < chars.len() && chars[curr + 1] == '-' {
                     add_token(&mut tokens, line_count, col, TokenType::Decrement, None);
                     curr += 1;
+                } else if curr + 1 < chars.len() && (chars[curr + 1].is_ascii_digit() || 
+                    (chars[curr + 1] == '.' && curr + 2 < chars.len() && chars[curr + 2].is_ascii_digit())) {
+                    // Negative number
+                    let num_start = curr;
+                    curr += 1; // Skip the minus sign
+                    let mut has_dot = false;
+                    
+                    while curr < chars.len() {
+                        let c = chars[curr];
+                        if c.is_ascii_digit() {
+                            curr += 1;
+                        } else if c == '.' && !has_dot {
+                            has_dot = true;
+                            curr += 1;
+                        } else {
+                            break;
+                        }
+                    }
+                    
+                    let number: String = chars[num_start..curr].iter().collect();
+                    add_token(
+                        &mut tokens,
+                        line_count,
+                        col,
+                        TokenType::Number,
+                        Some(number),
+                    );
+                    curr -= 1; // Back up since we'll increment at the end of the loop
                 } else {
                     add_token(&mut tokens, line_count, col, TokenType::Subtract, None);
                 }
@@ -177,7 +205,19 @@ pub fn tokenize(filename: &str, code: &str) -> Result<Vec<Token>, DreamberdError
                     add_token(&mut tokens, line_count, col, TokenType::FuncPoint, None);
                     curr += 1;
                 } else {
-                    add_token(&mut tokens, line_count, col, TokenType::Equal, None);
+                    // Check for multiple equals (==, ===, ====)
+                    let mut value = String::from("=");
+                    while curr + 1 < chars.len() && chars[curr + 1] == '=' {
+                        value.push('=');
+                        curr += 1;
+                    }
+                    match value.len() {
+                        1 => add_token(&mut tokens, line_count, col, TokenType::Equal, None),
+                        2 => add_token(&mut tokens, line_count, col, TokenType::EqualEqual, Some(value)),
+                        3 => add_token(&mut tokens, line_count, col, TokenType::EqualEqualEqual, Some(value)),
+                        4 => add_token(&mut tokens, line_count, col, TokenType::EqualEqualEqualEqual, Some(value)),
+                        _ => add_token(&mut tokens, line_count, col, TokenType::EqualEqualEqualEqual, Some(value)), // Default to ====
+                    }
                 }
             }
             '<' => {
@@ -198,20 +238,34 @@ pub fn tokenize(filename: &str, code: &str) -> Result<Vec<Token>, DreamberdError
             }
             '!' => add_token(&mut tokens, line_count, col, TokenType::Bang, None),
             '?' => add_token(&mut tokens, line_count, col, TokenType::Question, None),
+            '(' => add_token(&mut tokens, line_count, col, TokenType::LParen, None),
+            ')' => add_token(&mut tokens, line_count, col, TokenType::RParen, None),
             '"' | '\'' => {
-                // String literal
+                // String literal - check for interpolation
                 let (end_pos, string_value) = get_string_token(&padded_code, curr, filename, line_count)?;
-                add_token(
-                    &mut tokens,
-                    line_count,
-                    col,
-                    TokenType::String,
-                    Some(string_value),
-                );
+                
+                // Check if string contains interpolation patterns ${...}
+                if string_value.contains("${") {
+                    add_token(
+                        &mut tokens,
+                        line_count,
+                        col,
+                        TokenType::InterpolatedString,
+                        Some(string_value),
+                    );
+                } else {
+                    add_token(
+                        &mut tokens,
+                        line_count,
+                        col,
+                        TokenType::String,
+                        Some(string_value),
+                    );
+                }
                 curr = end_pos;
             }
-            ' ' | '\t' | '(' | ')' => {
-                // Whitespace (parentheses are treated as whitespace)
+            ' ' | '\t' => {
+                // Whitespace
                 let ws_value = get_effective_whitespace_value(ch);
                 if !ws_value.is_empty() {
                     add_token(
@@ -224,8 +278,35 @@ pub fn tokenize(filename: &str, code: &str) -> Result<Vec<Token>, DreamberdError
                 }
             }
             _ => {
+                // Check for numbers first
+                if ch.is_ascii_digit() || (ch == '.' && curr + 1 < chars.len() && chars[curr + 1].is_ascii_digit()) {
+                    let num_start = curr;
+                    let mut has_dot = false;
+                    
+                    while curr < chars.len() {
+                        let c = chars[curr];
+                        if c.is_ascii_digit() {
+                            curr += 1;
+                        } else if c == '.' && !has_dot {
+                            has_dot = true;
+                            curr += 1;
+                        } else {
+                            break;
+                        }
+                    }
+                    
+                    let number: String = chars[num_start..curr].iter().collect();
+                    add_token(
+                        &mut tokens,
+                        line_count,
+                        col,
+                        TokenType::Number,
+                        Some(number),
+                    );
+                    curr -= 1; // Back up since we'll increment at the end of the loop
+                }
                 // Name/identifier
-                if ch.is_alphanumeric() || ch == '_' || ch == '.' {
+                else if ch.is_alphabetic() || ch == '_' {
                     let name_start = curr;
                     while curr < chars.len()
                         && (chars[curr].is_alphanumeric() || chars[curr] == '_' || chars[curr] == '.')

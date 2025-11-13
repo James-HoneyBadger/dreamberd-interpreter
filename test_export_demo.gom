@@ -1,0 +1,16 @@
+// Test export functionality
+const myNumber = 42!
+const myString = "Hello Gulf of Mexico"!
+const myBool = true!
+const myArray = [1, 2, 3]!
+const myObject = new Object()!
+myObject["name"] = "Test"!
+myObject["value"] = 100!
+
+export myNumber to "exported_number.gom"!
+export myString to "exported_string.gom"!
+export myBool to "exported_bool.gom"!
+export myArray to "exported_array.gom"!
+export myObject to "exported_object.gom"!
+
+print "Exports completed successfully"!

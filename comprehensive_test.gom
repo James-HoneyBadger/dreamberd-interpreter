@@ -1,0 +1,36 @@
+// Comprehensive Gulf of Mexico interpreter test
+
+// Import statement test
+import ComplexMaker!
+
+// Variable declarations with different modifiers
+const const x = 5!
+const y = "Hello World"!
+
+// Constructor calls
+const obj1 = new ComplexMaker()!
+const obj2 = new TestClass(42, "test")!
+
+// If statements with different conditions
+if true {
+    print "If statement works!"!
+    const nested = 10!
+}!
+
+if false {
+    print "This should not appear"!
+} else {
+    print "Else clause works!"!
+}!
+
+// Print statements with various arguments
+print "Testing print:"!
+print "Number:" 123!
+print "Variable:" x!
+print "Multiple" "words" "together"!
+
+// Nested if with constructor in condition
+if true {
+    const innerObj = new InnerClass()!
+    print "Nested constructor works!"!
+}!

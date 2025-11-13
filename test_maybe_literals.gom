@@ -1,0 +1,4 @@
+// Test just boolean literals
+print("true:", true)!
+print("false:", false)!
+print("maybe:", maybe)!

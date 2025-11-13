@@ -1,0 +1,20 @@
+// Test variable lifetime tracking
+print("=== Variable Lifetime Test ===")!
+
+// Test line-based lifetime (should expire after 2 lines)
+const<2> shortLived = "I will expire soon"!
+print("Short-lived variable:", shortLived)!
+print("Still here:", shortLived)!
+// Variable should expire after this line
+print("Trying to access expired var:")!
+// This should fail: print(shortLived)!
+
+// Test time-based lifetime (expires after 1 second)
+const<1s> timeBasedVar = "I expire in 1 second"!
+print("Time-based variable:", timeBasedVar)!
+
+// Test normal variables (should not expire)
+const normalVar = "I live forever"!
+print("Normal variable:", normalVar)!
+print("Still normal:", normalVar)!
+print("Forever normal:", normalVar)!

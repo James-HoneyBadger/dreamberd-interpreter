@@ -54,6 +54,9 @@ pub enum TokenType {
     LessEqual,    // <=
     GreaterEqual, // >=
     NotEqual,     // ;=
+    EqualEqual,   // ==
+    EqualEqualEqual, // ===
+    EqualEqualEqualEqual, // ====
     Pipe,         // |
     And,          // &
 
@@ -64,6 +67,7 @@ pub enum TokenType {
     Whitespace,
     Name,
     String,
+    InterpolatedString, // "Hello ${name}!"
     Newline,
     SingleQuote,  // '
     DoubleQuote,  // "
@@ -98,6 +102,9 @@ impl TokenType {
             "<=" => Some(TokenType::LessEqual),
             ">=" => Some(TokenType::GreaterEqual),
             ";=" => Some(TokenType::NotEqual),
+            "==" => Some(TokenType::EqualEqual),
+            "===" => Some(TokenType::EqualEqualEqual),
+            "====" => Some(TokenType::EqualEqualEqualEqual),
             "|" => Some(TokenType::Pipe),
             "&" => Some(TokenType::And),
             "\n" => Some(TokenType::Newline),
@@ -135,6 +142,9 @@ impl TokenType {
             TokenType::LessEqual => "<=",
             TokenType::GreaterEqual => ">=",
             TokenType::NotEqual => ";=",
+            TokenType::EqualEqual => "==",
+            TokenType::EqualEqualEqual => "===",
+            TokenType::EqualEqualEqualEqual => "====",
             TokenType::Pipe => "|",
             TokenType::And => "&",
             TokenType::Number => "NUMBER",
@@ -144,6 +154,7 @@ impl TokenType {
             TokenType::Whitespace => " ",
             TokenType::Name => "NAME",
             TokenType::String => "STRING",
+            TokenType::InterpolatedString => "INTERPOLATED_STRING",
         }
     }
 }

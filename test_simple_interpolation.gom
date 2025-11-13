@@ -1,0 +1,2 @@
+// Simple interpolation test
+print("Number: ${5}")!

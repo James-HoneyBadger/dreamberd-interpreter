@@ -1,0 +1,37 @@
+// Comprehensive test of working features
+print("=== Gulf of Mexico Comprehensive Test ===")!
+
+// Variable declarations with different modifiers
+const const a = 5!
+var var b = 10!
+const var c = 15!
+var const d = 20!
+print("Variables:", a, b, c, d)!
+
+// Variable assignment (only var var should work)
+b = 25!
+print("After assignment b =", b)!
+
+// Three-valued logic
+const const maybe_val = maybe!
+print("Maybe value:", maybe_val)!
+
+// String interpolation
+const const name = "World"!
+const const age = 42!
+print("Interpolation: Hello ${name}! You are ${age} years old.")!
+print("Math interpolation: ${3 + 4} = 7")!
+
+// Function definitions and calls
+function greet(person, greeting) {
+    print("${greeting}, ${person}!")!
+    return "Function result"!
+}!
+
+print("Function call:", greet("Alice", "Hello"))!
+
+// Temporal keywords (previous/current/next)
+print("Current a:", current a)!
+a = 100!  // This should fail for const const, but let's see what happens
+
+print("=== Test Complete ===")!

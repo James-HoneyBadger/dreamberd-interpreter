@@ -1,0 +1,12 @@
+// Test constructor calls
+
+// Simple constructor with no arguments
+const obj1 = new SimpleClass()!
+
+// Constructor with arguments
+const obj2 = new ComplexClass(42, "hello")!
+
+// Constructor in an if statement
+if true {
+    const obj3 = new AnotherClass(1, 2, 3)!
+}!

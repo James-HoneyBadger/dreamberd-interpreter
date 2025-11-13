@@ -1,0 +1,3 @@
+// Test temporal keywords with built-in values  
+print("current(true):", current(true))!
+print("previous(true):", previous(true))!

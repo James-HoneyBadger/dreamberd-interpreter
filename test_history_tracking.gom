@@ -1,0 +1,10 @@
+// Test temporal access with function arguments
+// This demonstrates that variable history is being tracked
+
+function testHistory(val) {
+    print("Current value:", current(val))!
+    print("Previous value:", previous(val))!
+}
+
+// Test with built-in values to avoid assignment issues
+testHistory(42)!

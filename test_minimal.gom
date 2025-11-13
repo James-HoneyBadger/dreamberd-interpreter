@@ -1,1 +1,2 @@
-fn performIter(m, ref) => { print "test"! }
+if true {
+}!

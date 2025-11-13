@@ -134,7 +134,7 @@ impl DreamberdBoolean {
 #[derive(Debug, Clone, PartialEq)]
 pub struct DreamberdList {
     pub values: Vec<DreamberdValue>,
-    pub indexer: HashMap<i64, usize>, // Maps user index to actual index
+    pub indexer: HashMap<String, usize>, // Maps user index (as string) to actual index
 }
 
 impl DreamberdList {
@@ -142,9 +142,77 @@ impl DreamberdList {
         let mut indexer = HashMap::new();
         // Initialize with -1 based indexing
         for (i, _) in values.iter().enumerate() {
-            indexer.insert(i as i64 - 1, i);
+            indexer.insert((i as i64 - 1).to_string(), i);
         }
         DreamberdList { values, indexer }
+    }
+
+    /// Get a value by index (supports both integer and float indices)
+    pub fn get(&self, index: f64) -> Option<&DreamberdValue> {
+        let index_str = if index.fract() == 0.0 {
+            (index as i64).to_string()
+        } else {
+            index.to_string()
+        };
+        
+        if let Some(&actual_index) = self.indexer.get(&index_str) {
+            self.values.get(actual_index)
+        } else {
+            None
+        }
+    }
+
+    /// Insert a value at a fractional index
+    pub fn insert_at(&mut self, index: f64, value: DreamberdValue) {
+        let index_str = if index.fract() == 0.0 {
+            (index as i64).to_string()
+        } else {
+            index.to_string()
+        };
+
+        // If it's an existing integer index, replace the value
+        if let Some(&actual_index) = self.indexer.get(&index_str) {
+            if actual_index < self.values.len() {
+                self.values[actual_index] = value;
+                return;
+            }
+        }
+
+        // For fractional indices, insert at the appropriate position
+        if index.fract() != 0.0 {
+            let base_index = index.floor() as i64;
+            let base_index_str = base_index.to_string();
+            
+            // Find where to insert based on the base index
+            let insert_pos = if let Some(&actual_base) = self.indexer.get(&base_index_str) {
+                actual_base + 1
+            } else {
+                // If base index doesn't exist, append at the end
+                self.values.len()
+            };
+
+            // Insert the value
+            self.values.insert(insert_pos, value);
+            
+            // Update indexer - shift all indices after the insertion point
+            let mut new_indexer = HashMap::new();
+            for (key, &pos) in &self.indexer {
+                if pos >= insert_pos {
+                    new_indexer.insert(key.clone(), pos + 1);
+                } else {
+                    new_indexer.insert(key.clone(), pos);
+                }
+            }
+            
+            // Add the new fractional index
+            new_indexer.insert(index_str, insert_pos);
+            self.indexer = new_indexer;
+        } else {
+            // Integer index - add as new entry
+            let actual_index = self.values.len();
+            self.values.push(value);
+            self.indexer.insert(index_str, actual_index);
+        }
     }
 }
 
@@ -222,6 +290,9 @@ pub struct VariableLifetime {
     pub confidence: i32,
     pub can_be_reset: bool,
     pub can_edit_value: bool,
+    pub created_at: std::time::Instant,
+    pub created_line: u64, // Line number when created
+    pub is_time_based: bool, // true for time-based (seconds), false for line-based
 }
 
 impl VariableLifetime {
@@ -232,6 +303,41 @@ impl VariableLifetime {
             confidence,
             can_be_reset,
             can_edit_value,
+            created_at: std::time::Instant::now(),
+            created_line: 0, // Will be set by interpreter
+            is_time_based: false, // Default to line-based
+        }
+    }
+
+    pub fn new_with_tracking(
+        value: DreamberdValue, 
+        duration: u64, 
+        confidence: i32, 
+        can_be_reset: bool, 
+        can_edit_value: bool,
+        current_line: u64,
+        is_time_based: bool
+    ) -> Self {
+        VariableLifetime {
+            value,
+            duration,
+            confidence,
+            can_be_reset,
+            can_edit_value,
+            created_at: std::time::Instant::now(),
+            created_line: current_line,
+            is_time_based,
+        }
+    }
+
+    /// Check if this lifetime has expired
+    pub fn is_expired(&self, current_line: u64) -> bool {
+        if self.is_time_based {
+            // Time-based expiration (duration in seconds)
+            self.created_at.elapsed().as_secs() >= self.duration
+        } else {
+            // Line-based expiration
+            current_line >= self.created_line + self.duration
         }
     }
 }
@@ -255,6 +361,26 @@ impl Variable {
 
     pub fn value(&self) -> Option<&DreamberdValue> {
         self.lifetimes.first().map(|lt| &lt.value)
+    }
+
+    pub fn set_value(&mut self, new_value: DreamberdValue) {
+        if let Some(lifetime) = self.lifetimes.first_mut() {
+            if lifetime.can_edit_value {
+                // Store the current value as a previous value before updating
+                self.prev_values.push(lifetime.value.clone());
+                lifetime.value = new_value;
+            }
+        }
+    }
+
+    /// Get previous value at specified index (0 = most recent previous)
+    pub fn get_previous(&self, index: usize) -> Option<&DreamberdValue> {
+        self.prev_values.iter().rev().nth(index)
+    }
+
+    /// Get current value (alias for value())
+    pub fn get_current(&self) -> Option<&DreamberdValue> {
+        self.value()
     }
 }
 
@@ -338,6 +464,13 @@ pub fn db_to_string(value: &DreamberdValue) -> DreamberdString {
             Some(false) => DreamberdString::new("false".to_string()),
             None => DreamberdString::new("maybe".to_string()),
         },
+        DreamberdValue::List(list) => {
+            let elements: Vec<String> = list.values
+                .iter()
+                .map(|v| db_to_string(v).value)
+                .collect();
+            DreamberdString::new(format!("[{}]", elements.join(", ")))
+        }
         DreamberdValue::Undefined(_) => DreamberdString::new("undefined".to_string()),
         _ => DreamberdString::new(format!("{:?}", value)),
     }

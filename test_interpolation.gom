@@ -1,4 +1,17 @@
-const const name = "Gulf of Mexico"!
-print("Hello ${name}!")!
-print("Hello £{name}!")!
-print("Hello ¥{name}!")!
+// Test string interpolation
+print("=== String Interpolation Test ===")!
+
+// Test basic interpolation with numbers
+print("Simple: ${42}")!
+print("Math: ${5 + 3}")!
+
+// Test interpolation with boolean values  
+print("Boolean true: ${true}")!
+print("Boolean false: ${false}")!
+print("Boolean maybe: ${maybe}")!
+
+// Test multiple interpolations
+print("Multiple: ${1} + ${2} = ${1 + 2}")!
+
+// Test nested expressions
+print("Nested: ${sqrt(16) + 1}")!

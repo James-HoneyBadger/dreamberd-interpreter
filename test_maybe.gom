@@ -1,0 +1,14 @@
+// Test maybe keyword support
+x = true!
+y = false!
+z = maybe!
+
+print("true:", x)!
+print("false:", y)!
+print("maybe:", z)!
+
+// Test three-valued logic comparisons
+print("true == true:", x == x)!
+print("true == false:", x == y)!
+print("true == maybe:", x == z)!
+print("maybe == maybe:", z == z)!

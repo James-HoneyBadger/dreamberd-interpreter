@@ -17,6 +17,7 @@ pub enum CodeStatement {
     ClassDeclaration(ClassDeclaration),
     VariableDeclaration(VariableDeclaration),
     VariableAssignment(VariableAssignment),
+    IndexAssignment(IndexAssignment),
     Conditional(Conditional),
     ReturnStatement(ReturnStatement),
     ExpressionStatement(ExpressionStatement),
@@ -58,6 +59,14 @@ pub struct VariableDeclaration {
 pub struct VariableAssignment {
     pub target: ExpressionTreeNode,
     pub value: ExpressionTreeNode,
+    pub debug: u8,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct IndexAssignment {
+    pub target: ExpressionTreeNode,  // The array/object being indexed
+    pub index: ExpressionTreeNode,   // The index expression
+    pub value: ExpressionTreeNode,   // The value being assigned
     pub debug: u8,
 }
 
@@ -152,11 +161,32 @@ fn parse_statement(
 
     match token.token_type {
         crate::base::TokenType::Name => {
-            match token.value.as_str() {
-                // Variable declarations
-                "const" | "var" => {
-                    return parse_variable_declaration(tokens, pos, filename, code);
+            // Check for variable declarations first
+            if matches!(token.value.as_str(), "const" | "var") {
+                // Check if this looks like a declaration pattern
+                // Either: const const ... OR var name = ... OR const name = ...
+                if *pos + 1 < tokens.len() {
+                    let next_token = &tokens[*pos + 1];
+                    
+                    // Double modifier (const const)
+                    if next_token.token_type == crate::base::TokenType::Name &&
+                       matches!(next_token.value.as_str(), "const" | "var") {
+                        return parse_variable_declaration(tokens, pos, filename, code);
+                    }
+                    // Single modifier followed by name (var x = ... or const x = ...)
+                    else if next_token.token_type == crate::base::TokenType::Name &&
+                           !matches!(next_token.value.as_str(), "const" | "var") {
+                        // Look ahead for = sign to confirm this is a declaration
+                        if *pos + 2 < tokens.len() && 
+                           tokens[*pos + 2].token_type == crate::base::TokenType::Equal {
+                            return parse_variable_declaration(tokens, pos, filename, code);
+                        }
+                    }
                 }
+            }
+
+            // Check for other statement types
+            match token.value.as_str() {
                 // Function definitions
                 "function" | "func" | "fun" | "fn" | "functi" | "union" => {
                     return parse_function_definition(tokens, pos, filename, code);
@@ -223,12 +253,20 @@ fn parse_variable_declaration(
     let is_global = modifiers.len() == 3;
 
     // Parse variable name
-    if *pos >= tokens.len() || tokens[*pos].token_type != crate::base::TokenType::Name {
+    if *pos >= tokens.len() {
         return Err(crate::base::DreamberdError::NonFormattedError(
             "Expected variable name after modifiers".to_string(),
         ));
     }
-    let name_token = tokens[*pos].clone();
+    
+    let name_token = match &tokens[*pos].token_type {
+        crate::base::TokenType::Name => tokens[*pos].clone(),
+        _ => {
+            return Err(crate::base::DreamberdError::NonFormattedError(
+                format!("Expected variable name, got {:?}", tokens[*pos].token_type),
+            ));
+        }
+    };
     *pos += 1;
 
     // Parse lifetime (<5> or <20s> or <Infinity>)
@@ -265,6 +303,11 @@ fn parse_variable_declaration(
 
     // Parse debug markers (? or ??)
     let debug = parse_debug_markers(tokens, pos);
+
+    // Consume trailing ! if present (statement terminator in Gulf of Mexico)
+    if *pos < tokens.len() && tokens[*pos].token_type == crate::base::TokenType::Bang {
+        *pos += 1;
+    }
 
     Ok(CodeStatement::VariableDeclaration(VariableDeclaration {
         name: name_token,
@@ -335,14 +378,7 @@ fn parse_function_definition(
     }
     *pos += 1; // consume ')'
 
-    // Parse function body
-    if *pos >= tokens.len() || tokens[*pos].token_type != crate::base::TokenType::FuncPoint {
-        return Err(crate::base::DreamberdError::NonFormattedError(
-            "Expected '=>' after function parameters".to_string(),
-        ));
-    }
-    *pos += 1; // consume '=>'
-
+    // Parse function body - Gulf of Mexico uses direct { syntax, not => arrow functions
     if *pos >= tokens.len() || tokens[*pos].token_type != crate::base::TokenType::LCurly {
         return Err(crate::base::DreamberdError::NonFormattedError(
             "Expected '{' to start function body".to_string(),
@@ -413,6 +449,13 @@ fn parse_conditional(
 
     // Parse condition
     let condition_tokens = collect_expression_tokens_until(tokens, pos, &[crate::base::TokenType::LCurly]);
+    
+    if condition_tokens.is_empty() {
+        return Err(crate::base::DreamberdError::NonFormattedError(
+            "Empty condition in if statement".to_string(),
+        ));
+    }
+    
     let condition = crate::processor::expression_tree::build_expression_tree(filename, condition_tokens, code)?;
 
     // Parse if body
@@ -438,6 +481,11 @@ fn parse_conditional(
         *pos += 1; // consume '{'
 
         else_body = Some(parse_statement_block(tokens, pos, filename, code)?);
+    }
+
+    // Consume trailing ! if present
+    if *pos < tokens.len() && tokens[*pos].token_type == crate::base::TokenType::Bang {
+        *pos += 1;
     }
 
     Ok(CodeStatement::Conditional(Conditional {
@@ -484,13 +532,16 @@ fn parse_expression_statement(
     filename: &str,
     code: &str,
 ) -> Result<CodeStatement, crate::base::DreamberdError> {
+    let start_pos = *pos;
     let expr_tokens = collect_expression_tokens(tokens, pos);
-    let expression = crate::processor::expression_tree::build_expression_tree(filename, expr_tokens, code)?;
     
-    // Consume semicolon if present
-    if *pos < tokens.len() && tokens[*pos].token_type == crate::base::TokenType::Semicolon {
-        *pos += 1;
+    if expr_tokens.is_empty() {
+        return Err(crate::base::DreamberdError::NonFormattedError(
+            "Empty expression statement".to_string(),
+        ));
     }
+    
+    let expression = crate::processor::expression_tree::build_expression_tree(filename, expr_tokens, code)?;
     
     // Consume trailing ! if present
     if *pos < tokens.len() && tokens[*pos].token_type == crate::base::TokenType::Bang {
@@ -578,6 +629,11 @@ fn parse_export_statement(
     let target_file = tokens[*pos].value.clone();
     *pos += 1;
 
+    // Consume trailing ! if present
+    if *pos < tokens.len() && tokens[*pos].token_type == crate::base::TokenType::Bang {
+        *pos += 1;
+    }
+
     Ok(CodeStatement::ExportStatement(ExportStatement {
         name,
         target_file,
@@ -601,6 +657,11 @@ fn parse_import_statement(
     let name = tokens[*pos].value.clone();
     *pos += 1;
 
+    // Consume trailing ! if present
+    if *pos < tokens.len() && tokens[*pos].token_type == crate::base::TokenType::Bang {
+        *pos += 1;
+    }
+
     Ok(CodeStatement::ImportStatement(ImportStatement {
         name,
     }))
@@ -614,6 +675,12 @@ fn parse_reverse_statement(
     _code: &str,
 ) -> Result<CodeStatement, crate::base::DreamberdError> {
     *pos += 1; // consume 'reverse'
+    
+    // Consume trailing ! if present
+    if *pos < tokens.len() && tokens[*pos].token_type == crate::base::TokenType::Bang {
+        *pos += 1;
+    }
+    
     Ok(CodeStatement::ReverseStatement(ReverseStatement))
 }
 
@@ -669,7 +736,10 @@ fn parse_statement_block(
             }
             crate::base::TokenType::RCurly => {
                 brace_count -= 1;
-                if brace_count > 0 {
+                if brace_count == 0 {
+                    // Found the closing brace, we're done with this block
+                    break;
+                } else {
                     *pos += 1;
                 }
             }
@@ -727,11 +797,51 @@ fn collect_expression_tokens_until(
 
 /// Collect tokens for an expression until statement end
 fn collect_expression_tokens(tokens: &[Token], pos: &mut usize) -> Vec<Token> {
-    collect_expression_tokens_until(
-        tokens,
-        pos,
-        &[crate::base::TokenType::Bang, crate::base::TokenType::Question, crate::base::TokenType::Semicolon],
-    )
+    let stop_tokens = &[
+        crate::base::TokenType::Bang, 
+        crate::base::TokenType::Question, 
+        crate::base::TokenType::Semicolon,
+        crate::base::TokenType::RCurly, // End of block
+    ];
+    
+    let mut expr_tokens = Vec::new();
+    let mut paren_depth = 0;
+    let mut bracket_depth = 0;
+    let mut brace_depth = 0;
+    let _start_pos = *pos;
+
+    while *pos < tokens.len() {
+        let token = &tokens[*pos];
+
+        // Check for stop tokens only when not inside nested structures
+        if paren_depth == 0 && bracket_depth == 0 && brace_depth == 0 {
+            if stop_tokens.contains(&token.token_type) {
+                break;
+            }
+        }
+
+        match token.token_type {
+            crate::base::TokenType::LParen => paren_depth += 1,
+            crate::base::TokenType::RParen => paren_depth -= 1,
+            crate::base::TokenType::LSquare => bracket_depth += 1,
+            crate::base::TokenType::RSquare => bracket_depth -= 1,
+            crate::base::TokenType::LCurly => brace_depth += 1,
+            crate::base::TokenType::RCurly => {
+                if brace_depth > 0 {
+                    brace_depth -= 1;
+                } else {
+                    // This brace closes the block, stop here
+                    break;
+                }
+            }
+            _ => {}
+        }
+
+        expr_tokens.push(token.clone());
+        *pos += 1;
+    }
+
+    expr_tokens
 }
 
 /// Parse debug markers (? or ??)

@@ -1,0 +1,20 @@
+const const arr = [10, 20, 30]!
+print("Original array:", arr)!
+
+print("Setting arr[0.5] = 15")!
+arr[0.5] = 15!
+print("After first insertion:", arr)!
+
+print("Setting arr[1.5] = 25")!
+arr[1.5] = 25!
+print("After second insertion:", arr)!
+
+print("Accessing various indices:")!
+print("arr[-1]:", arr[-1])!
+print("arr[0]:", arr[0])!
+print("arr[0.5]:", arr[0.5])!
+print("arr[1]:", arr[1])!
+print("arr[1.5]:", arr[1.5])!
+print("arr[2]:", arr[2])!
+
+print("Final array:", arr)!
