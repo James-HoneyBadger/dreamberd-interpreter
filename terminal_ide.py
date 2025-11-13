@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-DreamBerd Terminal IDE
-A simple terminal-based IDE for DreamBerd development
+GulfOfMexico Terminal IDE
+A simple terminal-based IDE for Gulf of Mexico development
 """
 
 import os
@@ -14,14 +14,14 @@ from pathlib import Path
 class DreamberdTerminalIDE:
     def __init__(self):
         self.current_file = None
-        self.code = "print 'Hello, DreamBerd!'!"
-        self.output = "Welcome to DreamBerd Terminal IDE!\n"
+        self.code = "print 'Hello, GulfOfMexico!'!"
+        self.output = "Welcome to Gulf of Mexico Terminal IDE!\n"
         self.font_size = 12
         self.theme = "dark"
 
     def display_menu(self):
         print("\n" + "=" * 50)
-        print("DreamBerd Terminal IDE")
+        print("GulfOfMexico Terminal IDE")
         print("=" * 50)
         print("1. Edit Code")
         print("2. Run Code")
@@ -37,7 +37,7 @@ class DreamberdTerminalIDE:
 
     def edit_code(self):
         # Create a temporary file for editing
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".db", delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".gom", delete=False) as f:
             f.write(self.code)
             temp_file = f.name
 
@@ -69,15 +69,15 @@ class DreamberdTerminalIDE:
             self.output += "No code to run!\n"
             return
 
-        self.output += "Running DreamBerd code...\n"
+        self.output += "Running Gulf of Mexico code...\n"
 
         # Save code to temp file
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".db", delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".gom", delete=False) as f:
             f.write(self.code)
             temp_file = f.name
 
         try:
-            # Run the DreamBerd interpreter
+            # Run the Gulf of Mexico interpreter
             result = subprocess.run(
                 ["cargo", "run", "--", temp_file],
                 cwd="/home/james/dreamberd-interpreter",
@@ -98,7 +98,7 @@ class DreamberdTerminalIDE:
         except subprocess.TimeoutExpired:
             self.output += "Execution timed out after 30 seconds\n"
         except FileNotFoundError:
-            self.output += "DreamBerd interpreter not found. Please build it first.\n"
+            self.output += "GulfOfMexico interpreter not found. Please build it first.\n"
         finally:
             os.unlink(temp_file)
 
@@ -167,18 +167,18 @@ class DreamberdTerminalIDE:
     def show_help(self):
         print(
             """
-DreamBerd Terminal IDE Help:
+GulfOfMexico Terminal IDE Help:
 
-This is a terminal-based IDE for DreamBerd programming language.
+This is a terminal-based IDE for Gulf of Mexico programming language.
 
 Features:
 - Code editing with your preferred text editor
-- Code execution with the DreamBerd interpreter
+- Code execution with the Gulf of Mexico interpreter
 - File operations (new, open, save)
 - Theme and font size customization
 - Output display and error reporting
 
-DreamBerd Language Features:
+GulfOfMexico Language Features:
 - Dynamic typing
 - Object-oriented programming
 - Functional programming constructs
@@ -202,7 +202,7 @@ Use the menu to navigate and edit your code!
         print(f"Code length: {len(self.code)} characters")
 
     def run(self):
-        print("Welcome to DreamBerd Terminal IDE!")
+        print("Welcome to Gulf of Mexico Terminal IDE!")
 
         while True:
             self.display_status()

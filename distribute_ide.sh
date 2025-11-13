@@ -1,10 +1,10 @@
 #!/bin/bash
-# DreamBerd IDE Distribution Script
-# This script builds and packages the native DreamBerd IDE
+# Gulf of Mexico IDE Distribution Script
+# This script builds and packages the native Gulf of Mexico IDE
 
 set -e
 
-echo "🏗️  Building DreamBerd IDE..."
+echo "🏗️  Building Gulf of Mexico IDE..."
 
 # Build release version
 cargo build --release --bin dreamberd-ide
@@ -23,10 +23,10 @@ cp -r examples "$DIST_DIR/"
 
 # Create README for distribution
 cat > "$DIST_DIR/README.txt" << 'EOF'
-DreamBerd IDE - Native Edition
+GulfOfMexico IDE - Native Edition
 =============================
 
-This is the native DreamBerd IDE, a standalone application for DreamBerd development.
+This is the native Gulf of Mexico IDE, a standalone application for Gulf of Mexico development.
 
 Features:
 - Native GUI with no external dependencies
@@ -38,7 +38,7 @@ Features:
 
 Usage:
 1. Run the dreamberd-ide executable
-2. Click "Open" to load a .db file from the examples/ folder
+2. Click "Open" to load a .gom file from the examples/ folder
 3. Edit code in the left panel
 4. Click "Run" to execute
 5. View output in the right panel
@@ -51,7 +51,7 @@ EOF
 # Create run script for convenience
 cat > "$DIST_DIR/run_ide.sh" << 'EOF'
 #!/bin/bash
-# Run DreamBerd IDE
+# Run Gulf of Mexico IDE
 ./dreamberd-ide
 EOF
 chmod +x "$DIST_DIR/run_ide.sh"

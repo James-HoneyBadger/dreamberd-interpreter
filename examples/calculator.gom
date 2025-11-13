@@ -1,4 +1,4 @@
-// DreamBerd Calculator Example
+// Gulf of Mexico Calculator Example
 const PI = 3.14159;
 const E = 2.71828;
 
@@ -10,7 +10,7 @@ function calculateCircumference(radius) {
     return 2 * PI * radius;
 }
 
-print 'DreamBerd Calculator';
+print 'GulfOfMexico Calculator';
 print '===================';
 
 const radius = 5;

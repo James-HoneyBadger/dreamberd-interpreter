@@ -1,4 +1,4 @@
-// Built-in types and values for DreamBerd
+// Built-in types and values for GulfOfMexico
 // Rust port of dreamberd/builtin.py
 
 use std::collections::HashMap;
@@ -14,7 +14,7 @@ pub fn is_int(x: f64) -> bool {
     remainder.abs() < FLOAT_TO_INT_PREC || (1.0 - remainder).abs() < FLOAT_TO_INT_PREC
 }
 
-/// DreamBerd value types
+/// Gulf of Mexico value types
 #[derive(Debug, Clone)]
 pub enum DreamberdValue {
     Number(DreamberdNumber),

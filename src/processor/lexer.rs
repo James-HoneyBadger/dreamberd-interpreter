@@ -1,4 +1,4 @@
-// Lexer module - tokenizes DreamBerd source code
+// Lexer module - tokenizes Gulf of Mexico source code
 // Rust port of dreamberd/processor/lexer.py
 
 use crate::base::{raise_error_at_line, DreamberdError, Token, TokenType};
@@ -103,7 +103,7 @@ fn get_string_token(
     ))
 }
 
-/// Tokenize DreamBerd source code
+/// Tokenize Gulf of Mexico source code
 pub fn tokenize(filename: &str, code: &str) -> Result<Vec<Token>, DreamberdError> {
     let padded_code = format!("{}   ", code); // Add padding to avoid bounds checks
     let chars: Vec<char> = padded_code.chars().collect();

@@ -1,4 +1,4 @@
-// Expression tree for evaluating DreamBerd expressions
+// Expression tree for evaluating Gulf of Mexico expressions
 // Rust port of dreamberd/processor/expression_tree.py
 
 use serde::{Deserialize, Serialize};

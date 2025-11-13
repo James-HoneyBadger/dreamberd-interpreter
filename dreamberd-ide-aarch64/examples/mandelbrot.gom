@@ -24,9 +24,9 @@ class ComplexMaker {
    }
 }
 
-export ComplexMaker to "main.db"!
+export ComplexMaker to "main.gom"!
 
-====== main.db ========
+====== main.gom ========
 
 import ComplexMaker!
 

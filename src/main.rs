@@ -1,4 +1,4 @@
-// DreamBerd Interpreter - Main entry point
+// Gulf of Mexico Interpreter - Main entry point
 // Rust port of dreamberd/__init__.py
 
 use clap::Parser;
@@ -20,9 +20,9 @@ use interpreter::Interpreter;
 
 #[derive(Parser, Debug)]
 #[command(name = "dreamberd")]
-#[command(about = "An interpreter for the perfect programming language, DreamBerd", long_about = None)]
+#[command(about = "An interpreter for the perfect programming language, GulfOfMexico", long_about = None)]
 struct Args {
-    /// The file containing your DreamBerd code
+    /// The file containing your Gulf of Mexico code
     file: Option<String>,
 
     /// Show the full Rust backtrace upon errors
@@ -42,7 +42,7 @@ fn main() {
 
 /// Run the REPL (Read-Eval-Print Loop)
 fn run_repl() {
-    println!("{}", "DreamBerd REPL (Rust Edition)".bright_cyan());
+    println!("{}", "GulfOfMexico REPL (Rust Edition)".bright_cyan());
     println!("{}", "Type your code and press Enter. Use Ctrl+C or Ctrl+D to exit.".yellow());
     println!();
 
@@ -104,7 +104,7 @@ fn run_repl() {
     }
 }
 
-/// Run a DreamBerd file
+/// Run a Gulf of Mexico file
 fn run_file(filename: &str) {
     let path = Path::new(filename);
     
@@ -214,9 +214,9 @@ mod tests {
 
     #[test]
     fn test_parse_multi_file_format() {
-        let code = r#"===== file1.db =====
+        let code = r#"===== file1.gom =====
 code1
-===== file2.db =====
+===== file2.gom =====
 code2"#;
         let files = parse_multi_file_format(code);
         assert_eq!(files.len(), 2);

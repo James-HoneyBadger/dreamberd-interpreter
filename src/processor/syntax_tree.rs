@@ -1,4 +1,4 @@
-// Syntax tree structures for DreamBerd statements
+// Syntax tree structures for Gulf of Mexico statements
 // Rust port of dreamberd/processor/syntax_tree.py
 
 use serde::{Deserialize, Serialize};

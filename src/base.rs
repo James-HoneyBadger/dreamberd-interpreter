@@ -1,4 +1,4 @@
-// Base types: Token, TokenType, and error handling for DreamBerd interpreter
+// Base types: Token, TokenType, and error handling for Gulf of Mexico interpreter
 // Rust port of dreamberd/base.py
 
 use colored::Colorize;
@@ -18,7 +18,7 @@ pub enum DreamberdError {
     NonFormattedError(String),
 }
 
-/// Token types in the DreamBerd language
+/// Token types in the Gulf of Mexico language
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum TokenType {
     // Brackets

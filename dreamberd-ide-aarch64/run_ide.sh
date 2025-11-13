@@ -1,3 +1,3 @@
 #!/bin/bash
-# Run DreamBerd IDE
+# Run Gulf of Mexico IDE
 ./dreamberd-ide

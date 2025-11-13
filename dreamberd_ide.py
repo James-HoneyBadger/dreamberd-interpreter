@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-DreamBerd GUI IDE
-A full-featured graphical IDE for DreamBerd development
+GulfOfMexico GUI IDE
+A full-featured graphical IDE for Gulf of Mexico development
 """
 
 import tkinter as tk
@@ -15,13 +15,13 @@ import re
 class DreamberdGUIIDE:
     def __init__(self, root):
         self.root = root
-        self.root.title("DreamBerd IDE")
+        self.root.title("GulfOfMexico IDE")
         self.root.geometry("1200x800")
 
         # Initialize variables
         self.current_file = None
-        self.code = "print 'Hello, DreamBerd!'!"
-        self.output_text = "Welcome to DreamBerd GUI IDE!\n"
+        self.code = "print 'Hello, GulfOfMexico!'!"
+        self.output_text = "Welcome to Gulf of Mexico GUI IDE!\n"
         self.debug_info = ""
         self.breakpoints = set()
         self.current_line = 1
@@ -172,7 +172,7 @@ class DreamberdGUIIDE:
         help_menu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Help", menu=help_menu)
         help_menu.add_command(label="About", command=self.show_about)
-        help_menu.add_command(label="DreamBerd Docs", command=self.show_docs)
+        help_menu.add_command(label="GulfOfMexico Docs", command=self.show_docs)
 
     def create_toolbar(self):
         toolbar = ttk.Frame(self.root)
@@ -432,15 +432,15 @@ class DreamberdGUIIDE:
                 self.save_file()
 
         self.code_editor.delete("1.0", tk.END)
-        self.code_editor.insert("1.0", "print 'Hello, DreamBerd!'!")
+        self.code_editor.insert("1.0", "print 'Hello, GulfOfMexico!'!")
         self.current_file = None
-        self.root.title("DreamBerd IDE - Untitled")
+        self.root.title("GulfOfMexico IDE - Untitled")
         self.status_label.config(text="New file created")
 
     def open_file(self):
         filename = filedialog.askopenfilename(
-            title="Open DreamBerd File",
-            filetypes=[("DreamBerd files", "*.db"), ("All files", "*.*")],
+            title="Open Gulf of Mexico File",
+            filetypes=[("GulfOfMexico files", "*.gom"), ("All files", "*.*")],
         )
 
         if filename:
@@ -451,7 +451,7 @@ class DreamberdGUIIDE:
                 self.code_editor.delete("1.0", tk.END)
                 self.code_editor.insert("1.0", content)
                 self.current_file = Path(filename)
-                self.root.title(f"DreamBerd IDE - {filename}")
+                self.root.title(f"GulfOfMexico IDE - {filename}")
                 self.status_label.config(text=f"Opened {filename}")
                 self.on_code_change()
 
@@ -466,15 +466,15 @@ class DreamberdGUIIDE:
 
     def save_file_as(self):
         filename = filedialog.asksaveasfilename(
-            title="Save DreamBerd File",
-            defaultextension=".db",
-            filetypes=[("DreamBerd files", "*.db"), ("All files", "*.*")],
+            title="Save Gulf of Mexico File",
+            defaultextension=".gom",
+            filetypes=[("GulfOfMexico files", "*.gom"), ("All files", "*.*")],
         )
 
         if filename:
             self.current_file = Path(filename)
             self._save_to_file(self.current_file)
-            self.root.title(f"DreamBerd IDE - {filename}")
+            self.root.title(f"GulfOfMexico IDE - {filename}")
 
     def _save_to_file(self, filepath):
         try:
@@ -493,10 +493,10 @@ class DreamberdGUIIDE:
             self.output_text_widget.insert(tk.END, "No code to run!\n")
             return
 
-        self.output_text_widget.insert(tk.END, "Running DreamBerd code...\n")
+        self.output_text_widget.insert(tk.END, "Running Gulf of Mexico code...\n")
         self.status_label.config(text="Running...")
 
-        # Execute synchronously - DreamBerd execution is fast
+        # Execute synchronously - Gulf of Mexico execution is fast
         self._execute_code(code)
 
     def _execute_code(self, code):
@@ -506,7 +506,7 @@ class DreamberdGUIIDE:
             import io
             from contextlib import redirect_stdout
 
-            with tempfile.NamedTemporaryFile(mode="w", suffix=".db", delete=False) as f:
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".gom", delete=False) as f:
                 f.write(code)
                 temp_file = f.name
 
@@ -816,10 +816,10 @@ class DreamberdGUIIDE:
 
     def show_about(self):
         messagebox.showinfo(
-            "About DreamBerd IDE",
-            "DreamBerd GUI IDE v1.0\n\n"
+            "About Gulf of Mexico IDE",
+            "GulfOfMexico GUI IDE v1.0\n\n"
             "A full-featured integrated development environment\n"
-            "for the DreamBerd programming language.\n\n"
+            "for the Gulf of Mexico programming language.\n\n"
             "Features:\n"
             "• Code editor with syntax highlighting\n"
             "• Output window\n"
@@ -830,8 +830,8 @@ class DreamberdGUIIDE:
 
     def show_docs(self):
         messagebox.showinfo(
-            "DreamBerd Documentation",
-            "DreamBerd Language Features:\n\n"
+            "GulfOfMexico Documentation",
+            "GulfOfMexico Language Features:\n\n"
             "• Dynamic typing\n"
             "• Object-oriented programming\n"
             "• Functional programming\n"

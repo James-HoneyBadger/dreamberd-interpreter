@@ -1,6 +1,6 @@
-# DreamBerd Interpreter (Rust Edition)
+# Gulf of Mexico Interpreter (Rust Edition)
 
-This is a **Rust implementation** of the interpreter for the perfect programming language, DreamBerd. 
+This is a **Rust implementation** of the interpreter for the perfect programming language, GulfOfMexico. 
 
 > **Note:** This is a complete rewrite of the original Python interpreter in Rust, focusing on performance, type safety, and modern systems programming practices.
 
@@ -64,10 +64,10 @@ dreamberd
 
 ### File Execution
 
-Execute a DreamBerd file:
+Execute a Gulf of Mexico file:
 
 ```bash
-dreamberd myprogram.db
+dreamberd myprogram.gom
 ```
 
 ### Command-Line Options
@@ -76,7 +76,7 @@ dreamberd myprogram.db
 Usage: dreamberd [OPTIONS] [FILE]
 
 Arguments:
-  [FILE]  The file containing your DreamBerd code
+  [FILE]  The file containing your Gulf of Mexico code
 
 Options:
   -s, --show-traceback  Show the full Rust backtrace upon errors
@@ -92,7 +92,7 @@ src/
 ├── main.rs              # CLI entry point, REPL, and file runner
 ├── lib.rs               # Library exports
 ├── base.rs              # Token types, error handling
-├── builtin.rs           # DreamBerd value types (Number, String, Boolean, etc.)
+├── builtin.rs           # Gulf of Mexico value types (Number, String, Boolean, etc.)
 ├── interpreter.rs       # Main interpreter engine
 ├── serialize.rs         # Serialization for persistent variables
 └── processor/
@@ -104,10 +104,10 @@ src/
 
 ### Key Components
 
-- **Lexer**: Tokenizes source code, handling DreamBerd's unusual string quoting rules
+- **Lexer**: Tokenizes source code, handling GulfOfMexico's unusual string quoting rules
 - **Parser**: Builds Abstract Syntax Trees (AST) from tokens
 - **Interpreter**: Evaluates AST nodes with namespace management
-- **Value System**: Type-safe representation of DreamBerd values
+- **Value System**: Type-safe representation of Gulf of Mexico values
 - **Error Handling**: Rich error messages with source location info
 
 ## Implementation Status
@@ -198,7 +198,7 @@ cargo doc --open
 
 ## Language Features
 
-All DreamBerd features from the [specification](https://github.com/TodePond/DreamBerd) will be supported:
+All Gulf of Mexico features from the [specification](https://github.com/TodePond/GulfOfMexico) will be supported:
 
 - Exclamation marks and question marks as statement terminators
 - Four types of variable declarations
@@ -235,13 +235,13 @@ Same as the original Python version - see [LICENSE](LICENSE) file.
 ## Acknowledgments
 
 - Original Python implementation by Vivaan Singhvi
-- DreamBerd language specification by [TodePond](https://github.com/TodePond/DreamBerd)
+- Gulf of Mexico language specification by [TodePond](https://github.com/TodePond/GulfOfMexico)
 - Rust port also by Vivaan Singhvi
 - Maintained by James HoneyBadger
 
-## Why DreamBerd?
+## Why GulfOfMexico?
 
-DreamBerd is not meant for production use - it's an art project and language satire that pushes programming language design to absurd extremes. The Rust port is an exercise in:
+GulfOfMexico is not meant for production use - it's an art project and language satire that pushes programming language design to absurd extremes. The Rust port is an exercise in:
 
 - Learning Rust's ownership system
 - Implementing interpreters in systems languages

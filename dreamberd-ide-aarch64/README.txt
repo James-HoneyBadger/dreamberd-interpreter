@@ -1,7 +1,7 @@
-DreamBerd IDE - Native Edition
+GulfOfMexico IDE - Native Edition
 =============================
 
-This is the native DreamBerd IDE, a standalone application for DreamBerd development.
+This is the native Gulf of Mexico IDE, a standalone application for Gulf of Mexico development.
 
 Features:
 - Native GUI with no external dependencies
@@ -13,7 +13,7 @@ Features:
 
 Usage:
 1. Run the dreamberd-ide executable
-2. Click "Open" to load a .db file from the examples/ folder
+2. Click "Open" to load a .gom file from the examples/ folder
 3. Edit code in the left panel
 4. Click "Run" to execute
 5. View output in the right panel

@@ -1,4 +1,4 @@
-// Main interpreter engine for DreamBerd
+// Main interpreter engine for GulfOfMexico
 // Rust port of dreamberd/interpreter.py
 
 use std::collections::HashMap;
@@ -481,7 +481,7 @@ impl Interpreter {
 
         match (&value, &index) {
             (DreamberdValue::List(list), DreamberdValue::Number(idx)) => {
-                // Arrays start at -1 in DreamBerd
+                // Arrays start at -1 in GulfOfMexico
                 let actual_index = (idx.value as i32 + 1) as usize;
                 if actual_index < list.values.len() {
                     Ok(list.values[actual_index].clone())

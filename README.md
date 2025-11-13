@@ -1,23 +1,23 @@
-# DreamBerd Interpreter
+# Gulf of Mexico Interpreter
 
-This is the interpreter for the perfect programming language. It is made in Python, for the sole reason that the interpreter can itself be interpreted. Future plans include creating a DreamBerd interpreter in DreamBerd, so that the DreamBerd Interpreter can be passed into the DreamBerd Interpreter Interpreter, which is then interpreted by the DreamBerd Interpreter Interpreter Interpreter (a.k.a. Python). This may or may not be created due to difficulty moving everything over and whatnot. I'll try though.
+This is the interpreter for the perfect programming language. It is made in Python, for the sole reason that the interpreter can itself be interpreted. Future plans include creating a Gulf of Mexico interpreter in GulfOfMexico, so that the Gulf of Mexico Interpreter can be passed into the Gulf of Mexico Interpreter Interpreter, which is then interpreted by the Gulf of Mexico Interpreter Interpreter Interpreter (a.k.a. Python). This may or may not be created due to difficulty moving everything over and whatnot. I'll try though.
 
-This is incredibly slow. My implementation of DreamBerd is suboptimal, which itself runs on a subperformant language (Python), which runs on a pretty fast language (C). However, speed was never a focus in creating my interpreter for DreamBerd and shouldn't be - it's not a language meant for day-to-day use - it's a work of art.
+This is incredibly slow. My implementation of Gulf of Mexico is suboptimal, which itself runs on a subperformant language (Python), which runs on a pretty fast language (C). However, speed was never a focus in creating my interpreter for Gulf of Mexico and shouldn't be - it's not a language meant for day-to-day use - it's a work of art.
 
-## DreamBerd IDE
+## Gulf of Mexico IDE
 
-This project includes a comprehensive **native IDE** for DreamBerd development built entirely in Rust.
+This project includes a comprehensive **native IDE** for Gulf of Mexico development built entirely in Rust.
 
 ### Native IDE (`dreamberd-ide`)
 
 A fully native, standalone IDE application with no external dependencies, featuring:
 
 - **🚀 Native Performance**: Built in Rust with zero runtime dependencies
-- **📁 File Management**: Native file dialogs for opening and saving DreamBerd files
+- **📁 File Management**: Native file dialogs for opening and saving Gulf of Mexico files
 - **🎨 Multiple Themes**: Light, Dark, and Custom color schemes
 - **🔤 Font Customization**: Adjustable font sizes (8-24pt)
 - **🐛 Debug Panel**: Variable inspection and breakpoint management
-- **⚡ Real-time Execution**: Direct integration with the DreamBerd interpreter
+- **⚡ Real-time Execution**: Direct integration with the Gulf of Mexico interpreter
 - **📱 Cross-platform**: Works on Windows, macOS, and Linux
 
 #### Building the Native IDE
@@ -44,7 +44,7 @@ cargo run --bin dreamberd-ide
 - Theme switching
 
 **File Operations**
-- Open DreamBerd files (.db extension)
+- Open Gulf of Mexico files (.gom extension)
 - Save and Save As functionality
 - New file creation
 - Native file dialogs
@@ -71,13 +71,13 @@ cargo run --bin dreamberd-ide
 
 2. **Create or Open a File**:
    - Click "New" for a blank file
-   - Click "Open" to load existing DreamBerd code
+   - Click "Open" to load existing Gulf of Mexico code
 
 3. **Write Code**:
    ```dreamberd
-   print 'Hello from DreamBerd IDE!';
+   print 'Hello from Gulf of Mexico IDE!';
    
-   const name = 'DreamBerd';
+   const name = 'GulfOfMexico';
    print 'Welcome to ' + name + ' development!';
    ```
 
@@ -97,7 +97,7 @@ No installation required - just run the executable!
 
 ## Installation
 
-You can install DreamBerd from PyPi, by doing any the following:
+You can install Gulf of Mexico from PyPi, by doing any the following:
 
 ```
 $ pip install dreamberd 
@@ -106,17 +106,17 @@ $ pip install "dreamberd[input]"
 $ pip install "dreamberd[globals]"
 ```
 
-Each of these commands installs DreamBerd with the respective dependencies. `input` installs the `pynput` package and allows the use of `after` statements and event watchers. `globals` installs `PyGithub` and allows you to declare `const const const` variables that are publically stored using GitHub. Note: to use the latter, you must enter a [Personal Access Token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens) in the `GITHUB_ACCESS_TOKEN` environment variable.
+Each of these commands installs Gulf of Mexico with the respective dependencies. `input` installs the `pynput` package and allows the use of `after` statements and event watchers. `globals` installs `PyGithub` and allows you to declare `const const const` variables that are publically stored using GitHub. Note: to use the latter, you must enter a [Personal Access Token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens) in the `GITHUB_ACCESS_TOKEN` environment variable.
 
 ## Usage
 
-Now that you have installed DreamBerd, you can run the REPL using the `$ dreamberd` command, or you can run a file using `$ dreamberd FILE`. Usage instructions here:
+Now that you have installed GulfOfMexico, you can run the REPL using the `$ dreamberd` command, or you can run a file using `$ dreamberd FILE`. Usage instructions here:
 
 ```
 usage: dreamberd [-h] [-s] [file]
 
 positional arguments:
-  file                  the file containing your DreamBerd code
+  file                  the file containing your Gulf of Mexico code
 
 options:
   -h, --help            show this help message and exit
@@ -133,7 +133,7 @@ options:
 
 ## Absent Features
 
-The goal of this project is to implement every feature from the DreamBerd language. A list of features is in the README file of the project, linked [here](https://github.com/TodePond/DreamBerd---e-acc). Here is a working list of features that there is no chance I will implement (new features may be added - or I should say, removed - as I work on this project and realize I'm too stupid to implement them):
+The goal of this project is to implement every feature from the Gulf of Mexico language. A list of features is in the README file of the project, linked [here](https://github.com/TodePond/GulfOfMexico---e-acc). Here is a working list of features that there is no chance I will implement (new features may be added - or I should say, removed - as I work on this project and realize I'm too stupid to implement them):
 
 - DB3X: I am not going to even try to parse XML AND parse DB code.
 - Regex: Since type hints seem to not even do anything there is no point in implementing a Regex parser. 
@@ -151,7 +151,7 @@ To my knowledge, everything else has been or will be implemented.
 
 ## Implemented Features
 
-These are features that are implemented according to the [DreamBerd specification](https://github.com/TodePond/DreamBerd---e-acc) in this interpreter. 
+These are features that are implemented according to the [GulfOfMexico specification](https://github.com/TodePond/GulfOfMexico---e-acc) in this interpreter. 
 
 ### Exclamation Marks!
 
@@ -173,7 +173,7 @@ If you're unsure, that's ok. You can put a question mark at the end of a line in
 print("Hello world")?
 ```
 
-You might be wondering what DreamBerd uses for the 'not' operator, which is an exclamation mark in most other languages. That's simple - the 'not' operator is a semi-colon instead.
+You might be wondering what Gulf of Mexico uses for the 'not' operator, which is an exclamation mark in most other languages. That's simple - the 'not' operator is a semi-colon instead.
 
 ```javascript
 if (;false) {
@@ -253,7 +253,7 @@ print(2 + 2 === 5)! //true
 
 ### Arrays
 
-Some languages start arrays at `0`, which can be unintuitive for beginners. Some languages start arrays at `1`, which isn't representative of how the code actually works. DreamBerd does the best of both worlds: Arrays start at `-1`.
+Some languages start arrays at `0`, which can be unintuitive for beginners. Some languages start arrays at `1`, which isn't representative of how the code actually works. Gulf of Mexico does the best of both worlds: Arrays start at `-1`.
 
 ```javascript
 const const scores = [3, 2, 5]!
@@ -305,7 +305,7 @@ Therefore, the when statement can contain as complex an expression as desired. O
 
 ### Lifetimes
 
-DreamBerd has a built-in garbage collector that will automatically clean up unused variables (note: this is simply Python's garbage collector, I didn't implement anything). However, if you want to be extra careful, you can specify a lifetime for a variable, with a variety of units.
+GulfOfMexico has a built-in garbage collector that will automatically clean up unused variables (note: this is simply Python's garbage collector, I didn't implement anything). However, if you want to be extra careful, you can specify a lifetime for a variable, with a variety of units.
 
 ```javascript
 const const name<2> = "Luke"! // lasts for two lines
@@ -322,7 +322,7 @@ const const name<Infinity> = "Luke"! // lasts forever
 
 ### Loops
 
-Loops are a complicated relic of archaic programming languages. In DreamBerd, there are no loops.
+Loops are a complicated relic of archaic programming languages. In GulfOfMexico, there are no loops.
 
 ### Booleans
 
@@ -345,14 +345,14 @@ function isKeyDown(key) => {
 
 ### Arithmetic
 
-DreamBerd has significant whitespace. Use spacing to specify the order of arithmetic operations.
+GulfOfMexico has significant whitespace. Use spacing to specify the order of arithmetic operations.
 
 ```javascript
 print(1 + 2*3)! //7
 print(1+2 * 3)! //9
 ```
 
-Unlike some other languages, DreamBerd allows you to use the caret (^) for exponentiation.
+Unlike some other languages, Gulf of Mexico allows you to use the caret (^) for exponentiation.
 
 ```javascript
 print(1^1)! // 1
@@ -370,11 +370,11 @@ print  (twenty two  +  thirty three)!  // 55
 
 ### Indents
 
-When it comes to indentation, DreamBerd strikes a happy medium that can be enjoyed by everyone: All indents must be 3 spaces long.
+When it comes to indentation, Gulf of Mexico strikes a happy medium that can be enjoyed by everyone: All indents must be 3 spaces long.
 
 ```javascript
 function main() => {
-   print("DreamBerd is the future")!
+   print("GulfOfMexico is the future")!
 }
 ```
 
@@ -382,7 +382,7 @@ function main() => {
 
 ```javascript
    function main() => {
-print("DreamBerd is the future")!
+print("GulfOfMexico is the future")!
    }
 ```
 
@@ -390,7 +390,7 @@ print("DreamBerd is the future")!
 
 ### Equality
 
-JavaScript lets you do different levels of comparison. `==` for loose comparison, and `===` for a more precise check. DreamBerd takes this to another level.
+JavaScript lets you do different levels of comparison. `==` for loose comparison, and `===` for a more precise check. Gulf of Mexico takes this to another level.
 
 You can use `==` to do a loose check.
 
@@ -547,17 +547,17 @@ print(current score)! // 5
 
 ### Exporting
 
-Many languages allow you to import things from specific files. In DreamBerd, importing is simpler. Instead, you export _to_ specific files!
+Many languages allow you to import things from specific files. In GulfOfMexico, importing is simpler. Instead, you export _to_ specific files!
 
 ```java
-===== add.db3 ==
+===== add.gom3 ==
 function add(a, b) => {
    return a + b!
 }
 
-export add to "main.db3"!
+export add to "main.gom3"!
 
-===== main.db3 ==
+===== main.gom3 ==
 import add!
 add(3, 2)!
 ```
@@ -602,7 +602,7 @@ delete 3!
 print(2 + 1)! // Error: 3 has been deleted
 ```
 
-DreamBerd is a multi-paradigm programming language, which means that you can `delete` the keywords and paradigms you don't like.
+GulfOfMexico is a multi-paradigm programming language, which means that you can `delete` the keywords and paradigms you don't like.
 
 ```javascript
 delete class!
@@ -663,7 +663,7 @@ In response to some recent criticism about this design decision, we would like t
 
 ### Semantic naming
 
-DreamBerd supports semantic naming.
+GulfOfMexico supports semantic naming.
 
 ```javascript
 const const sName = "Lu"!
@@ -679,7 +679,7 @@ const const g_fScore = 4.5!  // Interpreter maker here... idk if this is suppose
 
 ### Asynchronous Functions
 
-In most languages, it's hard to get asynchronous functions to synchronise with each other. In DreamBerd, it's easy: Asynchronous functions take turns running lines of code.
+In most languages, it's hard to get asynchronous functions to synchronise with each other. In GulfOfMexico, it's easy: Asynchronous functions take turns running lines of code.
 
 ```javascript
 async funct count() {
@@ -717,7 +717,7 @@ const var score = use(0)!
 
 When it comes to signals, the most important thing to discuss is _syntax_.
 
-In DreamBerd, you can set (and get) signals with just one function:
+In GulfOfMexico, you can set (and get) signals with just one function:
 
 ```javascript
 const var score = use(0)!
@@ -728,13 +728,13 @@ score()?  // Get the value (and print it)
 
 ### Copilot
 
-It's worth noting that Github Copilot doesn't understand DreamBerd, which means that Microsoft won't be able to steal your code.
+It's worth noting that Github Copilot doesn't understand GulfOfMexico, which means that Microsoft won't be able to steal your code.
 
 This is great for when you want to keep your open-sourced project closed-source.
 
 ### Highlighting
 
-Syntax highlighting is now available for DreamBerd in VSCode. To enable it, install a [highlighting extension](https://marketplace.visualstudio.com/items?itemName=fabiospampinato.vscode-highlight) and then use the [DreamBerd configuration file](https://github.com/TodePond/DreamBerd/blob/main/.vscode/settings.json).
+Syntax highlighting is now available for Gulf of Mexico in VSCode. To enable it, install a [highlighting extension](https://marketplace.visualstudio.com/items?itemName=fabiospampinato.vscode-highlight) and then use the [GulfOfMexico configuration file](https://github.com/TodePond/GulfOfMexico/blob/main/.vscode/settings.json).
 
 This is what it looks like:
 
@@ -749,7 +749,7 @@ print(name)! // "Luke"
 
 Wait, I almost forgot!
 
-Parentheses in DreamBerd do nothing. They get replaced with whitespace.<br>
+Parentheses in Gulf of Mexico do nothing. They get replaced with whitespace.<br>
 The following lines of code all do the same thing.
 
 ```javascript

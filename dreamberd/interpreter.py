@@ -419,7 +419,7 @@ def declare_new_variable(
     is_global = len(modifiers) == 3
     can_be_reset = (
         isinstance(
-            v := get_value_from_namespaces(modifiers[-2], namespaces), DreamberdKeyword
+            v := get_value_from_namespaces(modifiers[-1], namespaces), DreamberdKeyword
         )
         and v.value == "var"
     )
@@ -1879,7 +1879,15 @@ def determine_statement_type(
         elif isinstance(
             st, VariableDeclaration
         ):  # allow for const const const and normal declarations
-            if len(st.modifiers) == 2:
+            if len(st.modifiers) == 1:
+                if (
+                    (val := get_name_from_namespaces(st.modifiers[0].value, namespaces))
+                    is not None
+                    and isinstance(val.value, DreamberdKeyword)
+                    and val.value.value in {"const", "var"}
+                ):
+                    return st
+            elif len(st.modifiers) == 2:
                 if all(
                     [
                         (val := get_name_from_namespaces(mod.value, namespaces))

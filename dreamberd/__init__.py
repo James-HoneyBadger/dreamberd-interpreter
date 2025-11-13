@@ -55,32 +55,20 @@ def __get_next_repl_input(closed_scope_layers: int = 0) -> tuple[str, list[Token
         tokens += new_tokens
     match l := [t for t in tokens if not t.type == TokenType.WHITESPACE]:
         case [Token(type=TokenType.NAME)]:
-            tokens = [
-                Token(TokenType.NAME, "print", -1, -1),
-                Token(TokenType.WHITESPACE, " ", -1, -1),
-                l[0],
-                Token(TokenType.BANG, "!", -1, -1),
-            ]
+            # Only convert to print statement if it's not a keyword
+            if l[0].value not in KEYWORDS:
+                tokens = [
+                    Token(TokenType.NAME, "print", -1, -1),
+                    Token(TokenType.WHITESPACE, " ", -1, -1),
+                    l[0],
+                    Token(TokenType.BANG, "!", -1, -1),
+                ]
     return code, tokens
 
 
 def run_repl() -> None:
-    # Convert Name objects to Variable objects for keywords
-    from dreamberd.builtin import VariableLifetime
-
-    keyword_vars = {}
-    for name, item in KEYWORDS.items():
-        if hasattr(item, "value") and hasattr(
-            item.value, "value"
-        ):  # Name object with DreamberdKeyword
-            keyword_vars[name] = Variable(
-                name,
-                [VariableLifetime(item.value, 100000000000, 100, False, False)],
-                [],
-            )
-        else:
-            keyword_vars[name] = item
-    namespaces: list[dict[str, Union[Variable, Name]]] = [keyword_vars]  # type: ignore
+    # Use Name objects directly for keywords
+    namespaces: list[dict[str, Union[Variable, Name]]] = [KEYWORDS.copy()]  # type: ignore
     load_globals(__REPL_FILENAME, "", {}, set(), [], {})
     load_global_dreamberd_variables(namespaces)
     load_public_global_variables(namespaces)
@@ -130,22 +118,8 @@ def run_file(main_filename: str) -> None:  # idk what else to call this
         statements = generate_syntax_tree(filename, tokens, code)
 
         # load variables and run the code
-        from dreamberd.builtin import VariableLifetime
-
-        # Convert Name objects to Variable objects for keywords
-        keyword_vars = {}
-        for name, item in KEYWORDS.items():
-            if hasattr(item, "value") and hasattr(
-                item.value, "value"
-            ):  # Name object with DreamberdKeyword
-                keyword_vars[name] = Variable(
-                    name,
-                    [VariableLifetime(item.value, 100000000000, 100, False, False)],
-                    [],
-                )
-            else:
-                keyword_vars[name] = item
-        namespaces: list[dict[str, Union[Variable, Name]]] = [keyword_vars]  # type: ignore
+        # Use Name objects directly for keywords
+        namespaces: list[dict[str, Union[Variable, Name]]] = [KEYWORDS.copy()]  # type: ignore
         exported_names: list[tuple[str, str, DreamberdValue]] = []
         load_globals(
             filename,
@@ -180,7 +154,7 @@ def parse_args():
     parser = ArgumentParser()
     parser.add_argument(
         "file",
-        help="the file containing your DreamBerd code",
+        help="the file containing your Gulf of Mexico code",
         nargs="?",
         default="",
         type=str,

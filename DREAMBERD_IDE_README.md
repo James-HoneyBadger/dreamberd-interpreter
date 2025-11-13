@@ -1,12 +1,12 @@
-# DreamBerd GUI IDE
+# Gulf of Mexico GUI IDE
 
-A full-featured graphical integrated development environment for DreamBerd programming.
+A full-featured graphical integrated development environment for Gulf of Mexico programming.
 
 ## Features
 
 ### Code Editor
 
-- **Syntax Highlighting**: Automatic highlighting of DreamBerd keywords, strings, comments, and numbers
+- **Syntax Highlighting**: Automatic highlighting of Gulf of Mexico keywords, strings, comments, and numbers
 - **Line Numbers**: Toggle-able line numbers for easy navigation
 - **Multi-line Editing**: Full text editing with undo/redo support
 - **Find & Replace**: Search and replace functionality
@@ -34,7 +34,7 @@ A full-featured graphical integrated development environment for DreamBerd progr
 
 - **New/Open/Save**: Standard file operations with dialogs
 - **Auto-save**: Settings persistence across sessions
-- **File Types**: Native support for `.db` DreamBerd files
+- **File Types**: Native support for `.gom` Gulf of Mexico files
 
 ### Keyboard Shortcuts
 
@@ -55,7 +55,7 @@ A full-featured graphical integrated development environment for DreamBerd progr
 
 ## Installation
 
-The GUI IDE is included with the DreamBerd Python package. Install dependencies:
+The GUI IDE is included with the Gulf of Mexico Python package. Install dependencies:
 
 ```bash
 pip install -e .
@@ -81,7 +81,7 @@ poetry run dreamberd-ide
 
 ### Basic Workflow
 
-1. **Write Code**: Use the editor pane to write DreamBerd code
+1. **Write Code**: Use the editor pane to write Gulf of Mexico code
 2. **Run Code**: Press F5 or click "Run" to execute
 3. **View Output**: Check the output window for results
 4. **Debug**: Use F10 to start debugging (framework ready)
@@ -90,7 +90,7 @@ poetry run dreamberd-ide
 ### Example Code
 
 ```dreamberd
-const message = 'Hello, DreamBerd!'!
+const message = 'Hello, GulfOfMexico!'!
 print message!
 ```
 

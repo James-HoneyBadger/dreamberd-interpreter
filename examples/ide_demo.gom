@@ -1,11 +1,11 @@
-// DreamBerd IDE Demo
-// This file demonstrates the features of the DreamBerd IDE
+// Gulf of Mexico IDE Demo
+// This file demonstrates the features of the Gulf of Mexico IDE
 
-print '🎉 Welcome to DreamBerd IDE! 🎉';
+print '🎉 Welcome to Gulf of Mexico IDE! 🎉';
 print '================================';
 
 // Basic variables and operations
-const language = 'DreamBerd';
+const language = 'GulfOfMexico';
 const version = 'IDE v1.0';
 print 'Language: ' + language;
 print 'Version: ' + version;
