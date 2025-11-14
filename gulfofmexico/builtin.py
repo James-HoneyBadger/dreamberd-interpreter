@@ -183,7 +183,7 @@ class GulfOfMexicoList(
         # print("user index:" + str(user_index))
         realIndex = self.indexer.get(user_index)
         # print("real index:" + str(realIndex))
-        return self.values[round(realIndex) + 1]
+        return self.values[round(realIndex)]
 
     def assign_index(self, index: GulfOfMexicoValue, val: GulfOfMexicoValue) -> None:
         if not isinstance(index, GulfOfMexicoNumber):
@@ -191,10 +191,8 @@ class GulfOfMexicoList(
         if index.value in self.indexer:
             if not -1 <= index.value <= len(self.values) - 1:
                 raise NonFormattedError("Indexing out of list bounds.")
-            self.values[round(index.value) + 1] = val
-            self.indexer[round(index.value) + 1] = (
-                round(index.value) + 1
-            )  # if adding to end, user index is real index
+            self.values[round(index.value)] = val
+            self.indexer[round(index.value)] = round(index.value)
         else:  # assign in the middle of the array
             if not -1 <= index.value <= len(self.values) - 1:
                 raise NonFormattedError("Indexing out of list bounds.")

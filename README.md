@@ -4,6 +4,18 @@ This is the interpreter for the perfect programming language. It is made in Pyth
 
 This is incredibly slow. My implementation of Gulf of Mexico is suboptimal, which itself runs on a subperformant language (Python), which runs on a pretty fast language (C). However, speed was never a focus in creating my interpreter for Gulf of Mexico and shouldn't be - it's not a language meant for day-to-day use - it's a work of art.
 
+## Architecture
+
+The interpreter is a **monolithic Python implementation** (~2,900 lines in `gulfofmexico/interpreter.py`) that directly executes Gulf of Mexico code. It uses a three-stage pipeline:
+
+1. **Lexer** (`processor/lexer.py`) - Tokenizes source code
+2. **Parser** (`processor/syntax_tree.py`) - Builds abstract syntax tree (AST)
+3. **Interpreter** (`interpreter.py`) - Directly executes AST using pattern matching
+
+**Note:** The `gulfofmexico/engine/` package contains an experimental modular architecture that is NOT used in production. The actual interpreter uses the original monolithic design in `interpreter.py`.
+
+📖 **For detailed architecture documentation, see [ACTUAL_ARCHITECTURE.md](ACTUAL_ARCHITECTURE.md)**
+
 ## Installation
 
 You can install Gulf of Mexico from PyPi, by doing any the following:

@@ -1,3 +1,20 @@
+"""
+⭐ PRODUCTION INTERPRETER - THIS IS THE ACTUAL INTERPRETER USED IN PRODUCTION ⭐
+
+This monolithic interpreter (~2,900 lines) is what actually executes Gulf of Mexico code.
+
+EXECUTION PATH:
+    gulfofmexico/__init__.py → run_file()
+    → interpret_code_statements_main_wrapper() [THIS FILE]
+    → interpret_code_statements() [THIS FILE]
+    → Pattern matching on statement types [THIS FILE]
+
+The experimental gulfofmexico/engine/ package with handlers, caching, and plugins
+is NOT used in production. Everything goes through THIS file.
+
+See ACTUAL_ARCHITECTURE.md for complete documentation.
+"""
+
 # a note about this file: i've appended a "; raise" at the end of nearly every custom raise_error_at_token call,
 # because pyright (my nvim LSP) doesn't recognize the code terminating at the raise_error_at_token, so I add this
 # to make sure it recognizes that and doesn't yell at me because I don't like being yelled at
@@ -555,6 +572,28 @@ def declare_new_variable(
     # Add to namespace
     namespaces[-1][name] = var
 
+    # Check type annotation if provided
+    if statement.type_annotation:
+        check_type_annotation(value, statement.type_annotation)
+
+    # Check if this is a global immutable constant (const const const)
+    is_triple_const = len(statement.modifiers) == 3 and all(
+        mod.value == "const" for mod in statement.modifiers
+    )
+
+    if is_triple_const:
+        # Save as immutable global constant
+        save_local_immutable_constant(name, value, confidence)
+
+        # Try to create GitHub issue for global sharing, but don't fail if
+        # it doesn't work
+        try:
+            open_global_variable_issue(name, value, confidence)
+        except Exception:
+            # GitHub storage failed, but local storage succeeded
+            # This is acceptable - the variable is still immutable locally
+            pass
+
     # Trigger when statement watchers for this new variable
     when_watchers = get_code_from_when_statement_watchers(
         id(var), when_statement_watchers
@@ -598,6 +637,11 @@ def assign_variable(
         raise_error_at_token(
             filename, code, "Attempted to set a name that is undefined.", name_token
         )
+
+    # Check type annotation if the variable was declared with one
+    # Type is stored in the original VariableDeclaration, but we can't access it here
+    # For now, we'll skip type checking on reassignment
+    # TODO: Store type_annotation tokens on Variable for reassignment checks
 
     match debug:
         case 0:
@@ -689,10 +733,8 @@ def assign_variable(
                 )
                 visited_whens.append(when_watcher)
 
-        if isinstance(var, Variable) and not var.can_edit_value:
-            raise_error_at_token(
-                filename, code, "Cannot edit the value of this variable.", name_token
-            )
+        # Note: For indexed assignment (e.g., list[0] = x), we don't check can_edit_value
+        # because const var allows modifying elements, just not replacing the entire value
         assign_variable_helper(var.value, indexes)
 
     else:
@@ -783,18 +825,6 @@ def assign_variable(
                 [],
             )
         # Removed: remove_from_all_when_statement_watchers(id(var), when_statement_watchers)
-
-    if is_global:
-        # Always save locally first
-        save_local_immutable_constant(name, value, confidence)
-
-        # Try to create GitHub issue, but don't fail if it doesn't work
-        try:
-            open_global_variable_issue(name, value, confidence)
-        except Exception:
-            # GitHub storage failed, but local storage succeeded
-            # This is acceptable - the variable is still immutable locally
-            pass
 
 
 def perform_single_value_operation(
@@ -2166,7 +2196,7 @@ def get_keyboard_event_object(
     key: Optional[Union[keyboard.Key, keyboard.KeyCode]], event: str
 ) -> GulfOfMexicoObject:
     return GulfOfMexicoObject(
-        "MouseEvent",
+        "KeyboardEvent",
         {
             "key": Name("key", GulfOfMexicoString(str(key).split(".")[-1])),
             "event": Name("event", GulfOfMexicoString(event)),
@@ -2418,14 +2448,42 @@ def register_when_statement(
     for name in dict_keys:
         if name not in when_statement_watchers[-1]:
             when_statement_watchers[-1][name] = []
+        # store the built condition, the body, and a snapshot of the current
+        # namespaces so the watcher runs with the same scope when triggered.
+        captured_ns = deepcopy(namespaces)
+        # DEBUG: Print what we're capturing
+        try:
+            debug_keys = [list(ns.keys()) for ns in captured_ns]
+            debug_print_no_token(
+                filename, f"Capturing namespaces for when: {debug_keys}"
+            )
+        except Exception:
+            pass
         when_statement_watchers[-1][name].append(
-            (built_condition, statements_inside_scope, deepcopy(namespaces))
+            (built_condition, statements_inside_scope, captured_ns)
         )
 
     # check the condition now
-    condition_value = evaluate_expression(
-        built_condition, namespaces, async_statements, when_statement_watchers
-    )
+    # Evaluate the condition immediately inside the same namespaces that the
+    # when statement was defined. If a name cannot be found, include some
+    # cheap debugging info to aid diagnosis of nested scoping issues.
+    try:
+        condition_value = evaluate_expression(
+            built_condition, namespaces, async_statements, when_statement_watchers
+        )
+    except Exception as e:
+        # Only print a compact debug message so this doesn't pollute normal runs.
+        # This will help track down missing names during nested when tests.
+        try:
+            gathered = [t.value for t in gathered_names]
+            available_ns = [list(ns.keys()) for ns in namespaces]
+            debug_print_no_token(
+                filename,
+                f"Failed to evaluate when condition {gathered} with namespaces: {available_ns}",
+            )
+        except Exception:
+            pass
+        raise
     execute_conditional(
         condition_value,
         statements_inside_scope,
@@ -2444,7 +2502,10 @@ def load_globals(
     exported_names: list[tuple[str, str, GulfOfMexicoValue]],
     importable_names: dict[str, GulfOfMexicoValue],
 ) -> None:
-    """Stub function for loading globals - currently does nothing."""
+    """Load global variables - this is called before interpretation begins."""
+    # Note: Global variable loading is actually handled by load_global_gulfofmexico_variables
+    # and load_public_global_variables which are called separately.
+    # This function exists for potential future use or custom global loading logic.
     pass
 
 
@@ -2528,7 +2589,6 @@ name_watchers: NameWatchers = {}
 after_listeners: list = []
 
 # Global flags
-is_global: bool = False
 is_lifetime_temporal: bool = False
 
 
@@ -2741,8 +2801,45 @@ def interpret_code_statements(
                         del ns[statement.name.value]
 
             case ReverseStatement():
-                # Reverse operation - simplified
-                pass
+                # Reverse operation - reverses lists and strings in-place
+                var, ns = get_name_and_namespace_from_namespaces(
+                    statement.name.value, namespaces
+                )
+                if var is None:
+                    raise_error_at_token(
+                        filename,
+                        code,
+                        f"Cannot reverse undefined name: {statement.name.value}",
+                        statement.name,
+                    )
+
+                value = var.value if isinstance(var, Name) else var.value
+
+                if isinstance(value, GulfOfMexicoList):
+                    # Reverse list in-place
+                    value.values.reverse()
+                    value.create_namespace()
+                elif isinstance(value, GulfOfMexicoString):
+                    # Reverse string - create new reversed string
+                    reversed_str = value.value[::-1]
+                    new_value = GulfOfMexicoString(reversed_str)
+                    if isinstance(var, Variable):
+                        var.add_lifetime(
+                            new_value,
+                            0,  # confidence 0 for auto-generated
+                            100000000000,  # infinite duration
+                            var.can_be_reset,
+                            var.can_edit_value,
+                        )
+                    elif isinstance(var, Name):
+                        var.value = new_value
+                else:
+                    raise_error_at_token(
+                        filename,
+                        code,
+                        f"Cannot reverse type {type(value).__name__}. Only lists and strings can be reversed.",
+                        statement.name,
+                    )
 
             case ImportStatement():
                 for name_token in statement.names:

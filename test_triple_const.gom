@@ -1,0 +1,15 @@
+// Test triple const (immutable global variable)
+const const const global_pi = 3.14159!
+print(global_pi)!
+
+// Test regular const var
+const var list_data = [1, 2, 3]!
+print(list_data)!
+
+// Test that we can still modify list elements with const var
+list_data[0] = 99!
+print(list_data)!
+
+// Test triple const with string
+const const const global_message = "Hello World"!
+print(global_message)!

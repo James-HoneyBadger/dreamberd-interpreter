@@ -114,12 +114,13 @@ class DeleteStatement(CodeStatement, CodeStatementKeywordable, CodeStatementDebu
     debug: int
 
 
-# name!
+# reverse name!
 @dataclass
 class ReverseStatement(
     CodeStatement, CodeStatementKeywordable, CodeStatementDebuggable
 ):
-    keyword: Token
+    keyword: Token  # The 'reverse' keyword token
+    name: Token  # The variable to reverse
     debug: int
 
 
@@ -360,13 +361,14 @@ def create_function_definition(
 ) -> tuple[CodeStatement, ...]:
 
     # Parse function declaration
+    # First, collect the initial NAME tokens (keywords and function name)
     names_in_row = []
     i = 0
     while i < len(without_whitespace) and without_whitespace[i].type == TokenType.NAME:
         names_in_row.append(without_whitespace[i])
         i += 1
 
-    if not 2 <= len(names_in_row) <= 4:
+    if not 2 <= len(names_in_row):
         raise_error_at_token(
             filename,
             code,
@@ -378,12 +380,35 @@ def create_function_definition(
     is_async = len(names_in_row) >= 2 and names_in_row[0].value == "async"
     if is_async:
         keywords = names_in_row[:2]
-        name = names_in_row[2]
-        args = names_in_row[3:]
+        name = names_in_row[2] if len(names_in_row) > 2 else None
+        initial_args = names_in_row[3:]
     else:
         keywords = names_in_row[:1]
-        name = names_in_row[1]
-        args = names_in_row[2:]
+        name = names_in_row[1] if len(names_in_row) > 1 else None
+        initial_args = names_in_row[2:]
+
+    if name is None:
+        raise_error_at_token(
+            filename,
+            code,
+            "Function declaration must have a name.",
+            without_whitespace[0],
+        )
+
+    # Now collect all remaining parameter names (skipping commas)
+    # Note: parentheses are treated as whitespace by the lexer
+    args = list(initial_args)
+    while i < len(without_whitespace):
+        token = without_whitespace[i]
+        if token.type == TokenType.NAME:
+            args.append(token)
+        elif token.type in {TokenType.FUNC_POINT, TokenType.L_CURLY}:
+            # Stop when we hit the => or { that starts the function body
+            break
+        elif token.type != TokenType.COMMA:
+            # If we hit something unexpected (not a comma), stop parsing
+            break
+        i += 1
 
     return (
         FunctionDefinition(
@@ -423,7 +448,7 @@ def create_scoped_code_statement(
             without_whitespace[0],
         )
 
-    # at this point, this can be the "when" keyword, a class dec, a function call, or an if statement
+    # at this point, can be when, class dec, function call, or if statement
     scope_open_index = [t.type == TokenType.L_CURLY for t in tokens].index(True)
     stuff_inside_scope = tokens[scope_open_index + 1 : len(tokens) - ends_with_punc - 1]
     statements_inside_scope = generate_syntax_tree(filename, stuff_inside_scope, code)
@@ -542,15 +567,29 @@ def create_unscoped_code_statement(
     confidence = 0 if is_debug else len(tokens[-1].value)
     debug_level = 0 if not is_debug else len(tokens[-1].value)
 
-    if len(l := [t for t in tokens if t.type != TokenType.WHITESPACE]) == 2:
+    tokens_no_ws = [t for t in tokens if t.type != TokenType.WHITESPACE]
+
+    # Check for ReverseStatement: reverse name!
+    # Should have exactly 3 non-whitespace tokens: keyword, name, punctuation
+    if (
+        len(tokens_no_ws) == 3
+        and tokens_no_ws[0].type == TokenType.NAME
+        and tokens_no_ws[1].type == TokenType.NAME
+        and tokens_no_ws[2].type in {TokenType.BANG, TokenType.QUESTION}
+    ):
         return (
-            ReverseStatement(l[0], debug_level),
+            ReverseStatement(
+                keyword=tokens_no_ws[0],  # 'reverse' keyword
+                name=tokens_no_ws[1],  # variable to reverse
+                debug=debug_level,
+            ),
             ExpressionStatement(tokens[:-1], debug_level),
         )
 
     # it's a function!!!!!!!!!!!!!!!!!
-    if any(l := [t.type == TokenType.FUNC_POINT for t in tokens]):
-        func_point_index = l.index(True)
+    has_func_point = [t.type == TokenType.FUNC_POINT for t in tokens]
+    if any(has_func_point):
+        func_point_index = has_func_point.index(True)
         return create_function_definition(
             filename,
             without_whitespace,
