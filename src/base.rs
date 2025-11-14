@@ -6,9 +6,6 @@ use serde::{Deserialize, Serialize};
 use std::fmt;
 use thiserror::Error;
 
-/// Characters that can be part of names (alphanumeric + underscore + dot)
-pub const ALPH_NUMS: &str = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.";
-
 #[derive(Error, Debug)]
 pub enum DreamberdError {
     #[error("{0}")]
@@ -74,6 +71,7 @@ pub enum TokenType {
 }
 
 impl TokenType {
+    #[allow(dead_code)]
     pub fn from_str(s: &str) -> Option<Self> {
         match s {
             "}" => Some(TokenType::RCurly),
@@ -184,6 +182,7 @@ pub enum OperatorType {
 }
 
 impl OperatorType {
+    #[allow(dead_code)]
     pub fn from_str(s: &str) -> Option<Self> {
         match s {
             "+" => Some(OperatorType::Add),
@@ -209,6 +208,7 @@ impl OperatorType {
         }
     }
 
+    #[allow(dead_code)]
     pub fn as_str(&self) -> &'static str {
         match self {
             OperatorType::Add => "+",
@@ -261,6 +261,7 @@ impl fmt::Display for Token {
 }
 
 /// Print debug information with token context
+#[allow(dead_code)]
 pub fn debug_print(filename: &str, code: &str, message: &str, token: &Token) {
     if code.is_empty() {
         println!("\n{}\n", message.yellow());
@@ -291,12 +292,14 @@ pub fn debug_print(filename: &str, code: &str, message: &str, token: &Token) {
 }
 
 /// Print debug information without token context
+#[allow(dead_code)]
 pub fn debug_print_no_token(filename: &str, message: &str) {
     let debug_string = format!("{}\n\n{}", filename.yellow(), message.yellow());
     println!("\n{}\n", debug_string);
 }
 
 /// Raise an error at a specific token location
+#[allow(dead_code)]
 pub fn raise_error_at_token(
     filename: &str,
     code: &str,

@@ -5,11 +5,6 @@ use serde::{Deserialize, Serialize};
 use crate::base::Token;
 use crate::processor::expression_tree::ExpressionTreeNode;
 
-/// Base trait for code statements
-pub trait CodeStatementTrait {
-    fn statement_type(&self) -> &'static str;
-}
-
 /// All possible code statement types
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum CodeStatement {
@@ -100,6 +95,7 @@ pub struct WhenStatement {
 pub struct AfterStatement {
     pub event: String,
     pub body: Vec<CodeStatement>,
+    pub persistent: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -241,7 +237,7 @@ fn parse_variable_declaration(
 ) -> Result<CodeStatement, crate::base::DreamberdError> {
     let mut modifiers = Vec::new();
     let mut lifetime = None;
-    let mut confidence = 100; // default confidence
+    let confidence = 100; // default confidence
 
     // Parse modifiers (const/var)
     while *pos < tokens.len() && matches!(tokens[*pos].value.as_str(), "const" | "var") {
@@ -250,7 +246,7 @@ fn parse_variable_declaration(
     }
 
     // Check for global modifier (const const const)
-    let is_global = modifiers.len() == 3;
+    let _is_global = modifiers.len() == 3;
 
     // Parse variable name
     if *pos >= tokens.len() {
@@ -548,7 +544,7 @@ fn parse_expression_statement(
     filename: &str,
     code: &str,
 ) -> Result<CodeStatement, crate::base::DreamberdError> {
-    let start_pos = *pos;
+    let _start_pos = *pos;
     let expr_tokens = collect_expression_tokens(tokens, pos);
     
     if expr_tokens.is_empty() {
@@ -622,7 +618,7 @@ fn parse_delete_statement(
 fn parse_export_statement(
     tokens: &[Token],
     pos: &mut usize,
-    filename: &str,
+    _filename: &str,
     _code: &str,
 ) -> Result<CodeStatement, crate::base::DreamberdError> {
     *pos += 1; // consume 'export'
@@ -713,11 +709,17 @@ fn parse_after_statement(
     code: &str,
 ) -> Result<CodeStatement, crate::base::DreamberdError> {
     *pos += 1; // consume 'after'
+    // Optional 'persist' modifier
+    let mut persistent = false;
+    if *pos < tokens.len() && tokens[*pos].token_type == crate::base::TokenType::Name && tokens[*pos].value == "persist" {
+        persistent = true;
+        *pos += 1;
+    }
 
     // Parse event (string literal)
     if *pos >= tokens.len() || tokens[*pos].token_type != crate::base::TokenType::String {
         return Err(crate::base::DreamberdError::NonFormattedError(
-            "Expected event string after 'after'".to_string(),
+            "Expected event string after 'after' (use after persist \"event\" for persistent)".to_string(),
         ));
     }
     let event = tokens[*pos].value.clone();
@@ -736,6 +738,7 @@ fn parse_after_statement(
     Ok(CodeStatement::AfterStatement(AfterStatement {
         event,
         body,
+        persistent,
     }))
 }
 

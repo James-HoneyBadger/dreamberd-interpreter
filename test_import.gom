@@ -1,2 +1,12 @@
-import test_export!
-print x!
+// Test importing exported values
+import score!
+print("Imported score: ")!
+print(score)!
+
+import numbers!
+print("Imported numbers: ")!
+print(numbers)!
+
+import mixed!
+print("Imported mixed: ")!
+print(mixed)!

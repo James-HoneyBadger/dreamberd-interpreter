@@ -1,11 +1,27 @@
 // Main interpreter engine for GulfOfMexico
 // Rust port of dreamberd/interpreter.py
 
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
+use lazy_static::lazy_static;
+use std::sync::Mutex;
 use crate::base::{DreamberdError, TokenType, OperatorType};
-use crate::builtin::{DreamberdValue, Variable, Name, NamespaceEntry, VariableLifetime, DreamberdFunction, DreamberdUndefined, DreamberdNumber, DreamberdString, DreamberdBoolean, DreamberdList, DreamberdMap, DreamberdObject, BuiltinFunction, create_builtin_function, db_to_string, db_to_boolean, db_not};
+use crate::builtin::{DreamberdValue, Variable, Name, NamespaceEntry, VariableLifetime, DreamberdFunction, DreamberdUndefined, DreamberdNumber, DreamberdString, DreamberdBoolean, DreamberdList, DreamberdMap, DreamberdObject, create_builtin_function, db_to_string, db_to_boolean, db_not};
+use crate::alias::{load_aliases, alias as alias_set, unalias as alias_remove, list_aliases, canonicalize_tokens, bool_value};
 use crate::processor::syntax_tree::CodeStatement;
 use crate::processor::expression_tree::{ExpressionTreeNode, ValueNode, ConstructorNode};
+// Event input types for after-statements
+#[derive(Debug, Clone)]
+enum InputEvent {
+    KeyDown(String),
+    KeyUp(String),
+    MouseClick(String),
+    MouseRelease(String),
+}
+
+// Global synthetic event sender for trigger() builtin
+lazy_static! {
+    static ref SYNTHETIC_EVENT_SENDER: Mutex<Option<crossbeam_channel::Sender<InputEvent>>> = Mutex::new(None);
+}
 
 pub type Namespace = HashMap<String, NamespaceEntry>;
 
@@ -24,6 +40,9 @@ pub struct Interpreter {
     pub code: String,
     pub current_line: u64,
     pub when_statements: Vec<ReactiveWhen>,
+    pub after_statements: VecDeque<crate::processor::syntax_tree::AfterStatement>,
+    // Event channel receiver for input events
+    event_rx: Option<crossbeam_channel::Receiver<InputEvent>>,
 }
 
 impl Interpreter {
@@ -34,11 +53,95 @@ impl Interpreter {
             code,
             current_line: 1,
             when_statements: Vec::new(),
+            after_statements: VecDeque::new(),
+            event_rx: None,
         };
 
         // Initialize builtin functions and keywords
         interpreter.initialize_builtins();
+        // Load persisted keyword aliases
+        load_aliases();
+        
+        // Load immutable globals from persistent storage
+        interpreter.load_immutable_globals();
+
+        // Start input event listener thread
+        interpreter.initialize_event_loop();
+        
         interpreter
+    }
+
+    /// Initialize global input event loop (keyboard & mouse)
+    fn initialize_event_loop(&mut self) {
+        use std::thread;
+    use crossbeam_channel::unbounded;
+
+    let (tx, rx) = unbounded();
+        self.event_rx = Some(rx);
+    if let Ok(mut global) = SYNTHETIC_EVENT_SENDER.lock() { *global = Some(tx.clone()); }
+
+        thread::spawn(move || {
+            // Use rdev for global event listening
+            if let Err(err) = rdev::listen(move |event| {
+                let mapped = match event.event_type {
+                    rdev::EventType::KeyPress(key) => Some(InputEvent::KeyDown(format!("{:?}", key))),
+                    rdev::EventType::KeyRelease(key) => Some(InputEvent::KeyUp(format!("{:?}", key))),
+                    rdev::EventType::ButtonPress(button) => Some(InputEvent::MouseClick(format!("{:?}", button))),
+                    rdev::EventType::ButtonRelease(button) => Some(InputEvent::MouseRelease(format!("{:?}", button))),
+                    _ => None,
+                };
+                if let Some(ev) = mapped {
+                    // Ignore send errors (receiver dropped)
+                    let _ = tx.send(ev);
+                }
+            }) {
+                eprintln!("Failed to start input listener: {:?}", err);
+            }
+        });
+    }
+
+    /// Poll pending input events and execute matching after statements
+    fn poll_input_events(&mut self) -> Result<(), DreamberdError> {
+        if let Some(rx) = &self.event_rx {
+            // Collect events first to avoid borrow conflicts
+            let mut pending = Vec::new();
+            while let Ok(ev) = rx.try_recv() {
+                pending.push(ev);
+            }
+            for ev in pending {
+                self.process_input_event(ev)?;
+            }
+        }
+        Ok(())
+    }
+
+    /// Process a single input event
+    fn process_input_event(&mut self, ev: InputEvent) -> Result<(), DreamberdError> {
+        // Normalize event string
+        let key = match &ev {
+            InputEvent::KeyDown(k) => format!("keydown:{}", k),
+            InputEvent::KeyUp(k) => format!("keyup:{}", k),
+            InputEvent::MouseClick(b) => format!("click:{}", b),
+            InputEvent::MouseRelease(b) => format!("release:{}", b),
+        };
+
+        // Collect matching after statements (retain those that are persistent)
+        // Split matching and remaining to avoid borrow conflicts
+        let mut matching = Vec::new();
+        let mut remaining = VecDeque::new();
+        for stmt in self.after_statements.drain(..) {
+            if stmt.event == key || (stmt.event == "click" && key.starts_with("click")) {
+                matching.push(stmt);
+            } else {
+                remaining.push_back(stmt);
+            }
+        }
+        self.after_statements = remaining;
+        // Execute matches after we've updated the queue
+        for stmt in matching {
+            self.interpret_code_statements(stmt.body.clone())?;
+        }
+        Ok(())
     }
 
     fn initialize_builtins(&mut self) {
@@ -69,6 +172,42 @@ impl Interpreter {
                     }
                     _ => Some(DreamberdValue::Undefined(DreamberdUndefined)),
                 }
+            })),
+            // Alias management builtins
+            ("alias", create_builtin_function("alias", 2, |args| {
+                if let (Some(DreamberdValue::String(orig)), Some(DreamberdValue::String(newn))) = (args.get(0), args.get(1)) {
+                    Some(bool_value(alias_set(&orig.value, &newn.value)))
+                } else { Some(bool_value(false)) }
+            })),
+            ("unalias", create_builtin_function("unalias", 1, |args| {
+                if let Some(DreamberdValue::String(name)) = args.get(0) {
+                    Some(bool_value(alias_remove(&name.value)))
+                } else { Some(bool_value(false)) }
+            })),
+            ("list_aliases", create_builtin_function("list_aliases", 0, |_args| {
+                let map = list_aliases();
+                let mut values = HashMap::new();
+                for (k,v) in map.into_iter() {
+                    values.insert(k, DreamberdValue::String(DreamberdString::new(v)));
+                }
+                Some(DreamberdValue::Map(DreamberdMap { values }))
+            })),
+            // Synthetic input event trigger
+            ("trigger", create_builtin_function("trigger", 1, |args| {
+                use crate::builtin::DreamberdBoolean;
+                if let Some(DreamberdValue::String(s)) = args.get(0) {
+                    let ev = if let Some(rest) = s.value.strip_prefix("keydown:") { InputEvent::KeyDown(rest.to_string()) }
+                        else if let Some(rest) = s.value.strip_prefix("keyup:") { InputEvent::KeyUp(rest.to_string()) }
+                        else if let Some(rest) = s.value.strip_prefix("click:") { InputEvent::MouseClick(rest.to_string()) }
+                        else if let Some(rest) = s.value.strip_prefix("release:") { InputEvent::MouseRelease(rest.to_string()) }
+                        else if s.value == "click" { InputEvent::MouseClick("Synthetic".to_string()) }
+                        else { InputEvent::KeyDown(s.value.clone()) };
+                    if let Ok(lock) = SYNTHETIC_EVENT_SENDER.lock() {
+                        if let Some(tx) = &*lock { let _ = tx.send(ev); return Some(DreamberdValue::Boolean(DreamberdBoolean::true_val())); }
+                    }
+                    return Some(DreamberdValue::Boolean(DreamberdBoolean::false_val()));
+                }
+                Some(DreamberdValue::Boolean(DreamberdBoolean::false_val()))
             })),
         ];
 
@@ -106,6 +245,33 @@ impl Interpreter {
         }
     }
 
+    /// Store an immutable global variable (const const const)
+    fn store_immutable_global(&self, name: &str, value: &DreamberdValue, confidence: Option<f64>) -> Result<(), DreamberdError> {
+        crate::storage::store_immutable_global(name, value, confidence)
+    }
+
+    /// Load immutable globals from persistent storage
+    fn load_immutable_globals(&mut self) {
+        if let Ok(globals) = crate::storage::load_immutable_globals() {
+            for (name, (value, confidence)) in globals {
+                // Convert confidence back to i32 (0-100 scale)
+                let confidence_i32 = confidence.map(|c| (c * 100.0) as i32).unwrap_or(100);
+                
+                // Create a variable lifetime with maximum lifespan (immutable globals never expire)
+                let lifetime = VariableLifetime::new(
+                    value,
+                    u64::MAX, // Never expires
+                    confidence_i32,
+                    false,    // Cannot be reset (it's const const const)
+                    false,    // Cannot edit value
+                );
+                
+                let variable = Variable::new(name.clone(), lifetime);
+                self.namespaces[0].insert(name, NamespaceEntry::Variable(variable));
+            }
+        }
+    }
+
     /// Clean up expired variables from all namespaces
     fn cleanup_expired_variables(&mut self) {
         for namespace in &mut self.namespaces {
@@ -140,6 +306,8 @@ impl Interpreter {
         for statement in statements {
             // Clean up expired variables before executing each statement
             self.cleanup_expired_variables();
+            // Poll input events so reactive after statements can trigger between statements
+            self.poll_input_events()?;
             
             result = self.execute_statement(statement)?;
             
@@ -150,6 +318,10 @@ impl Interpreter {
                 break; // Return statement encountered
             }
         }
+
+        self.execute_scheduled_after_statements()?;
+        // Final poll after finishing batch
+        self.poll_input_events()?;
 
         Ok(result)
     }
@@ -218,10 +390,6 @@ impl Interpreter {
                 self.execute_reverse_statement()?;
                 Ok(None)
             }
-            _ => {
-                // Other statement types not yet implemented
-                Ok(None)
-            }
         }
     }
 
@@ -235,6 +403,20 @@ impl Interpreter {
         } else {
             DreamberdValue::Undefined(DreamberdUndefined)
         };
+
+        // Check for immutable global (const const const)
+        let is_immutable_global = var_decl.modifiers.len() >= 3 
+            && var_decl.modifiers.iter().all(|m| m == "const");
+        
+        if is_immutable_global {
+            // Persist to local storage
+            let confidence = if var_decl.confidence == 100 {
+                None
+            } else {
+                Some(var_decl.confidence as f64 / 100.0)
+            };
+            self.store_immutable_global(&var_decl.name.value, &value, confidence)?;
+        }
 
         // Determine variable properties based on modifiers
         let can_be_reset = var_decl.modifiers.iter().any(|m| m == "var");
@@ -408,8 +590,13 @@ impl Interpreter {
                 if let TokenType::Name = value_node.token.token_type {
                     let var_name = &value_node.token.value;
                     // Delete the variable from current namespace
-                    if let Some(namespace) = self.namespaces.last_mut() {
-                        namespace.remove(var_name);
+                    let mut removed = false;
+                    for namespace in self.namespaces.iter_mut().rev() {
+                        if namespace.remove(var_name).is_some() {
+                            removed = true;
+                        }
+                    }
+                    if removed {
                         println!("Deleted variable: {}", var_name);
                     }
                 } else if let TokenType::String = value_node.token.token_type {
@@ -484,6 +671,9 @@ impl Interpreter {
                                 .filter(|token| token.token_type != crate::base::TokenType::Whitespace)
                                 .collect();
                             
+                            // Canonicalize tokens via alias map before building expression tree
+                            let mut tokens = tokens; // make mutable
+                            canonicalize_tokens(&mut tokens);
                             match crate::processor::expression_tree::build_expression_tree("interpolation", tokens, &expr_str) {
                                 Ok(expr_tree) => {
                                     match self.evaluate_expression(&expr_tree) {
@@ -570,136 +760,135 @@ impl Interpreter {
         &mut self,
         op: &crate::processor::expression_tree::ExpressionNode,
     ) -> Result<DreamberdValue, DreamberdError> {
-        let left = self.evaluate_expression(&op.left)?;
-        let right = self.evaluate_expression(&op.right)?;
+        if op.operator == OperatorType::E {
+            let right = self.evaluate_expression(&op.right)?;
+            match op.left.as_ref() {
+                ExpressionTreeNode::Value(value_node) if value_node.token.token_type == crate::base::TokenType::Name => {
+                    let var_name = &value_node.token.value;
+                    self.assign_variable(var_name, right.clone())?;
+                    Ok(right) // Assignment returns the assigned value
+                }
+                ExpressionTreeNode::Index(index_node) => {
+                    self.assign_index(index_node, right.clone())?;
+                    Ok(right)
+                }
+                _ => {
+                    let left_value = self.evaluate_expression(&op.left)?;
+                    Ok(DreamberdValue::Boolean(DreamberdBoolean::new(Some(left_value == right))))
+                }
+            }
+        } else {
+            let left = self.evaluate_expression(&op.left)?;
+            let right = self.evaluate_expression(&op.right)?;
 
-        match op.operator {
-            OperatorType::Add => {
-                match (&left, &right) {
-                    (DreamberdValue::Number(l), DreamberdValue::Number(r)) => {
-                        Ok(DreamberdValue::Number(DreamberdNumber::new(l.value + r.value)))
-                    }
-                    (DreamberdValue::String(l), DreamberdValue::String(r)) => {
-                        Ok(DreamberdValue::String(DreamberdString::new(format!("{}{}", l.value, r.value))))
-                    }
-                    _ => Ok(DreamberdValue::Undefined(DreamberdUndefined)),
-                }
-            }
-            OperatorType::Sub => {
-                match (&left, &right) {
-                    (DreamberdValue::Number(l), DreamberdValue::Number(r)) => {
-                        Ok(DreamberdValue::Number(DreamberdNumber::new(l.value - r.value)))
-                    }
-                    _ => Ok(DreamberdValue::Undefined(DreamberdUndefined)),
-                }
-            }
-            OperatorType::Mul => {
-                match (&left, &right) {
-                    (DreamberdValue::Number(l), DreamberdValue::Number(r)) => {
-                        Ok(DreamberdValue::Number(DreamberdNumber::new(l.value * r.value)))
-                    }
-                    _ => Ok(DreamberdValue::Undefined(DreamberdUndefined)),
-                }
-            }
-            OperatorType::Div => {
-                match (&left, &right) {
-                    (DreamberdValue::Number(l), DreamberdValue::Number(r)) => {
-                        if r.value == 0.0 {
-                            Ok(DreamberdValue::Undefined(DreamberdUndefined))
-                        } else {
-                            Ok(DreamberdValue::Number(DreamberdNumber::new(l.value / r.value)))
+            match op.operator {
+                OperatorType::Add => {
+                    match (&left, &right) {
+                        (DreamberdValue::Number(l), DreamberdValue::Number(r)) => {
+                            Ok(DreamberdValue::Number(DreamberdNumber::new(l.value + r.value)))
                         }
+                        (DreamberdValue::String(l), DreamberdValue::String(r)) => {
+                            Ok(DreamberdValue::String(DreamberdString::new(format!("{}{}", l.value, r.value))))
+                        }
+                        _ => Ok(DreamberdValue::Undefined(DreamberdUndefined)),
                     }
-                    _ => Ok(DreamberdValue::Undefined(DreamberdUndefined)),
                 }
-            }
-            OperatorType::Exp => {
-                match (&left, &right) {
-                    (DreamberdValue::Number(l), DreamberdValue::Number(r)) => {
-                        Ok(DreamberdValue::Number(DreamberdNumber::new(l.value.powf(r.value))))
+                OperatorType::Sub => {
+                    match (&left, &right) {
+                        (DreamberdValue::Number(l), DreamberdValue::Number(r)) => {
+                            Ok(DreamberdValue::Number(DreamberdNumber::new(l.value - r.value)))
+                        }
+                        _ => Ok(DreamberdValue::Undefined(DreamberdUndefined)),
                     }
-                    _ => Ok(DreamberdValue::Undefined(DreamberdUndefined)),
                 }
-            }
-            OperatorType::E => {
-                // Check if this is an assignment (left side is assignable) or equality comparison
-                match op.left.as_ref() {
-                    // Variable assignment: x = value
-                    ExpressionTreeNode::Value(value_node) if value_node.token.token_type == crate::base::TokenType::Name => {
-                        let var_name = &value_node.token.value;
-                        self.assign_variable(var_name, right.clone())?;
-                        Ok(right) // Assignment returns the assigned value
+                OperatorType::Mul => {
+                    match (&left, &right) {
+                        (DreamberdValue::Number(l), DreamberdValue::Number(r)) => {
+                            Ok(DreamberdValue::Number(DreamberdNumber::new(l.value * r.value)))
+                        }
+                        _ => Ok(DreamberdValue::Undefined(DreamberdUndefined)),
                     }
-                    // Index assignment: arr[index] = value  
-                    ExpressionTreeNode::Index(index_node) => {
-                        self.assign_index(index_node, right.clone())?;
-                        Ok(right) // Assignment returns the assigned value
-                    }
-                    // Otherwise treat as equality comparison
-                    _ => Ok(DreamberdValue::Boolean(DreamberdBoolean::new(Some(left == right))))
                 }
-            }
-            OperatorType::Ee | OperatorType::Eee | OperatorType::Eeee => {
-                // Equality with different strictness levels (always comparison, never assignment)
-                Ok(DreamberdValue::Boolean(DreamberdBoolean::new(Some(left == right))))
-            }
-            OperatorType::Ne | OperatorType::Nee | OperatorType::Neee => {
-                // Inequality
-                Ok(DreamberdValue::Boolean(DreamberdBoolean::new(Some(left != right))))
-            }
-            OperatorType::Lt => {
-                match (&left, &right) {
-                    (DreamberdValue::Number(l), DreamberdValue::Number(r)) => {
-                        Ok(DreamberdValue::Boolean(DreamberdBoolean::new(Some(l.value < r.value))))
+                OperatorType::Div => {
+                    match (&left, &right) {
+                        (DreamberdValue::Number(l), DreamberdValue::Number(r)) => {
+                            if r.value == 0.0 {
+                                Ok(DreamberdValue::Undefined(DreamberdUndefined))
+                            } else {
+                                Ok(DreamberdValue::Number(DreamberdNumber::new(l.value / r.value)))
+                            }
+                        }
+                        _ => Ok(DreamberdValue::Undefined(DreamberdUndefined)),
                     }
-                    _ => Ok(DreamberdValue::Boolean(DreamberdBoolean::maybe())),
                 }
-            }
-            OperatorType::Le => {
-                match (&left, &right) {
-                    (DreamberdValue::Number(l), DreamberdValue::Number(r)) => {
-                        Ok(DreamberdValue::Boolean(DreamberdBoolean::new(Some(l.value <= r.value))))
+                OperatorType::Exp => {
+                    match (&left, &right) {
+                        (DreamberdValue::Number(l), DreamberdValue::Number(r)) => {
+                            Ok(DreamberdValue::Number(DreamberdNumber::new(l.value.powf(r.value))))
+                        }
+                        _ => Ok(DreamberdValue::Undefined(DreamberdUndefined)),
                     }
-                    _ => Ok(DreamberdValue::Boolean(DreamberdBoolean::maybe())),
                 }
-            }
-            OperatorType::Gt => {
-                match (&left, &right) {
-                    (DreamberdValue::Number(l), DreamberdValue::Number(r)) => {
-                        Ok(DreamberdValue::Boolean(DreamberdBoolean::new(Some(l.value > r.value))))
+                OperatorType::Ee | OperatorType::Eee | OperatorType::Eeee => {
+                    Ok(DreamberdValue::Boolean(DreamberdBoolean::new(Some(left == right))))
+                }
+                OperatorType::Ne | OperatorType::Nee | OperatorType::Neee => {
+                    Ok(DreamberdValue::Boolean(DreamberdBoolean::new(Some(left != right))))
+                }
+                OperatorType::Lt => {
+                    match (&left, &right) {
+                        (DreamberdValue::Number(l), DreamberdValue::Number(r)) => {
+                            Ok(DreamberdValue::Boolean(DreamberdBoolean::new(Some(l.value < r.value))))
+                        }
+                        _ => Ok(DreamberdValue::Boolean(DreamberdBoolean::maybe())),
                     }
-                    _ => Ok(DreamberdValue::Boolean(DreamberdBoolean::maybe())),
                 }
-            }
-            OperatorType::Ge => {
-                match (&left, &right) {
-                    (DreamberdValue::Number(l), DreamberdValue::Number(r)) => {
-                        Ok(DreamberdValue::Boolean(DreamberdBoolean::new(Some(l.value >= r.value))))
+                OperatorType::Le => {
+                    match (&left, &right) {
+                        (DreamberdValue::Number(l), DreamberdValue::Number(r)) => {
+                            Ok(DreamberdValue::Boolean(DreamberdBoolean::new(Some(l.value <= r.value))))
+                        }
+                        _ => Ok(DreamberdValue::Boolean(DreamberdBoolean::maybe())),
                     }
-                    _ => Ok(DreamberdValue::Boolean(DreamberdBoolean::maybe())),
                 }
-            }
-            OperatorType::And => {
-                let left_bool = db_to_boolean(&left);
-                let right_bool = db_to_boolean(&right);
-                match (&left_bool.value, &right_bool.value) {
-                    (Some(l), Some(r)) => {
-                        Ok(DreamberdValue::Boolean(DreamberdBoolean::new(Some(*l && *r))))
+                OperatorType::Gt => {
+                    match (&left, &right) {
+                        (DreamberdValue::Number(l), DreamberdValue::Number(r)) => {
+                            Ok(DreamberdValue::Boolean(DreamberdBoolean::new(Some(l.value > r.value))))
+                        }
+                        _ => Ok(DreamberdValue::Boolean(DreamberdBoolean::maybe())),
                     }
-                    _ => Ok(DreamberdValue::Boolean(DreamberdBoolean::maybe())),
                 }
-            }
-            OperatorType::Or => {
-                let left_bool = db_to_boolean(&left);
-                let right_bool = db_to_boolean(&right);
-                match (&left_bool.value, &right_bool.value) {
-                    (Some(l), Some(r)) => {
-                        Ok(DreamberdValue::Boolean(DreamberdBoolean::new(Some(*l || *r))))
+                OperatorType::Ge => {
+                    match (&left, &right) {
+                        (DreamberdValue::Number(l), DreamberdValue::Number(r)) => {
+                            Ok(DreamberdValue::Boolean(DreamberdBoolean::new(Some(l.value >= r.value))))
+                        }
+                        _ => Ok(DreamberdValue::Boolean(DreamberdBoolean::maybe())),
                     }
-                    _ => Ok(DreamberdValue::Boolean(DreamberdBoolean::maybe())),
                 }
+                OperatorType::And => {
+                    let left_bool = db_to_boolean(&left);
+                    let right_bool = db_to_boolean(&right);
+                    match (&left_bool.value, &right_bool.value) {
+                        (Some(l), Some(r)) => {
+                            Ok(DreamberdValue::Boolean(DreamberdBoolean::new(Some(*l && *r))))
+                        }
+                        _ => Ok(DreamberdValue::Boolean(DreamberdBoolean::maybe())),
+                    }
+                }
+                OperatorType::Or => {
+                    let left_bool = db_to_boolean(&left);
+                    let right_bool = db_to_boolean(&right);
+                    match (&left_bool.value, &right_bool.value) {
+                        (Some(l), Some(r)) => {
+                            Ok(DreamberdValue::Boolean(DreamberdBoolean::new(Some(*l || *r))))
+                        }
+                        _ => Ok(DreamberdValue::Boolean(DreamberdBoolean::maybe())),
+                    }
+                }
+                _ => Ok(DreamberdValue::Undefined(DreamberdUndefined)),
             }
-            _ => Ok(DreamberdValue::Undefined(DreamberdUndefined)),
         }
     }
 
@@ -971,23 +1160,6 @@ impl Interpreter {
         Err(DreamberdError::NonFormattedError("Index assignment only supported on variable references".to_string()))
     }
 
-    /// Get value from namespaces (helper method)
-    pub fn get_value_from_namespaces(&self, name: &str) -> Option<DreamberdValue> {
-        for namespace in self.namespaces.iter().rev() {
-            if let Some(entry) = namespace.get(name) {
-                match entry {
-                    NamespaceEntry::Variable(var) => {
-                        return var.value().cloned();
-                    }
-                    NamespaceEntry::Name(name_struct) => {
-                        return Some(name_struct.value.clone());
-                    }
-                }
-            }
-        }
-        None
-    }
-
     /// Execute variable assignment
     fn execute_variable_assignment(
         &mut self,
@@ -1042,15 +1214,15 @@ impl Interpreter {
         &mut self,
         after_stmt: crate::processor::syntax_tree::AfterStatement,
     ) -> Result<(), DreamberdError> {
-        // For now, just execute the body immediately (placeholder implementation)
-        // In a full implementation, this would schedule the execution for later
-        println!("After statement executing (placeholder): {:?}", after_stmt);
-        
-        // Execute the body statements
-        for statement in after_stmt.body {
-            self.execute_statement(statement)?;
+        self.after_statements.push_back(after_stmt);
+        Ok(())
+    }
+
+    fn execute_scheduled_after_statements(&mut self) -> Result<(), DreamberdError> {
+        while let Some(after_stmt) = self.after_statements.pop_front() {
+            println!("Executing scheduled after statement for {}: {}", self.filename, after_stmt.event);
+            self.interpret_code_statements(after_stmt.body)?;
         }
-        
         Ok(())
     }
 
@@ -1188,13 +1360,6 @@ impl Interpreter {
         
         println!("Class '{}' declared", class_name);
         
-        // Execute the class body statements to define methods and properties
-        for statement in class_decl.body {
-            // For now, just execute statements in class context
-            // In full implementation, this would populate the class namespace
-            self.execute_statement(statement)?;
-        }
-        
         Ok(())
     }
 
@@ -1216,7 +1381,7 @@ impl Interpreter {
         
         // Parse and execute the imported file
         let tokens = match crate::processor::lexer::tokenize(&file_path, &content) {
-            Ok(tokens) => tokens,
+            Ok(mut tokens) => { canonicalize_tokens(&mut tokens); tokens },
             Err(e) => return Err(DreamberdError::InterpretationError(
                 format!("Failed to parse imported file '{}': {:?}", file_path, e)
             )),
@@ -1268,65 +1433,7 @@ impl Interpreter {
             ))?;
         
         // Generate Gulf of Mexico code to recreate this variable
-        let export_code = match variable_value {
-            DreamberdValue::Number(num) => {
-                format!("const {} = {}!", variable_name, num.value)
-            }
-            DreamberdValue::String(s) => {
-                format!("const {} = \"{}\"!", variable_name, s.value.replace('"', "\\\""))
-            }
-            DreamberdValue::Boolean(b) => {
-                let bool_val = match b.value {
-                    Some(true) => "true",
-                    Some(false) => "false", 
-                    None => "maybe",
-                };
-                format!("const {} = {}!", variable_name, bool_val)
-            }
-            DreamberdValue::List(arr) => {
-                // Simple array export - convert each element
-                let elements: Vec<String> = arr.values.iter().map(|v| match v {
-                    DreamberdValue::Number(n) => n.value.to_string(),
-                    DreamberdValue::String(s) => format!("\"{}\"", s.value.replace('"', "\\\"")),
-                    DreamberdValue::Boolean(b) => match b.value {
-                        Some(true) => "true".to_string(),
-                        Some(false) => "false".to_string(),
-                        None => "maybe".to_string(),
-                    },
-                    _ => "undefined".to_string(),
-                }).collect();
-                format!("const {} = [{}]!", variable_name, elements.join(", "))
-            }
-            DreamberdValue::Map(map) => {
-                // Export as object constructor calls
-                let mut object_code = format!("const {} = new Object()!\n", variable_name);
-                for (key, value) in &map.values {
-                    match value {
-                        DreamberdValue::Number(n) => {
-                            object_code.push_str(&format!("{}[\"{}\"] = {}!\n", variable_name, key, n.value));
-                        }
-                        DreamberdValue::String(s) => {
-                            object_code.push_str(&format!("{}[\"{}\"] = \"{}\"!\n", variable_name, key, s.value.replace('"', "\\\"")));
-                        }
-                        DreamberdValue::Boolean(b) => {
-                            let bool_val = match b.value {
-                                Some(true) => "true",
-                                Some(false) => "false",
-                                None => "maybe",
-                            };
-                            object_code.push_str(&format!("{}[\"{}\"] = {}!\n", variable_name, key, bool_val));
-                        }
-                        _ => {
-                            object_code.push_str(&format!("{}[\"{}\"] = undefined!\n", variable_name, key));
-                        }
-                    }
-                }
-                object_code.trim_end().to_string()
-            }
-            _ => {
-                format!("const {} = undefined!", variable_name)
-            }
-        };
+        let export_code = self.serialize_value_to_code(variable_name, variable_value)?;
         
         // Write to target file
         std::fs::write(target_file, export_code)
@@ -1336,6 +1443,91 @@ impl Interpreter {
         
         println!("Successfully exported variable '{}' to '{}'", variable_name, target_file);
         Ok(())
+    }
+
+    /// Serialize a DreamberdValue to Gulf of Mexico code
+    fn serialize_value_to_code(&self, var_name: &str, value: &DreamberdValue) -> Result<String, DreamberdError> {
+        self.serialize_value_to_expression(value, 0)
+            .map(|expr| format!("const {} = {}!", var_name, expr))
+    }
+
+    /// Serialize a value to an expression string (helper for nested values)
+    fn serialize_value_to_expression(&self, value: &DreamberdValue, depth: usize) -> Result<String, DreamberdError> {
+        // Prevent infinite recursion
+        if depth > 10 {
+            return Ok("undefined".to_string());
+        }
+
+        match value {
+            DreamberdValue::Number(num) => {
+                Ok(num.value.to_string())
+            }
+            DreamberdValue::String(s) => {
+                Ok(format!("\"{}\"", s.value.replace('"', "\\\"")))
+            }
+            DreamberdValue::Boolean(b) => {
+                let bool_val = match b.value {
+                    Some(true) => "true",
+                    Some(false) => "false", 
+                    None => "maybe",
+                };
+                Ok(bool_val.to_string())
+            }
+            DreamberdValue::List(arr) => {
+                // Recursively serialize array elements
+                let elements: Result<Vec<String>, DreamberdError> = arr.values.iter()
+                    .map(|v| self.serialize_value_to_expression(v, depth + 1))
+                    .collect();
+                Ok(format!("[{}]", elements?.join(", ")))
+            }
+            DreamberdValue::Map(map) => {
+                // Export as object literal with properties
+                let mut props: Vec<String> = Vec::new();
+                for (key, val) in &map.values {
+                    let val_expr = self.serialize_value_to_expression(val, depth + 1)?;
+                    props.push(format!("\"{}\": {}", key, val_expr));
+                }
+                Ok(format!("{{{}}}", props.join(", ")))
+            }
+            DreamberdValue::Function(func) => {
+                // Export function definition
+                let args = func.args.join(", ");
+                let body = if func.code.is_empty() {
+                    String::new()
+                } else {
+                    // For now, just indicate it's a function - proper code serialization
+                    // would require converting CodeStatements back to source text
+                    format!("/* {} statements */", func.code.len())
+                };
+                
+                if func.is_async {
+                    Ok(format!("async function({}) => {{\n  {}\n}}", args, body))
+                } else {
+                    Ok(format!("function({}) => {{\n  {}\n}}", args, body))
+                }
+            }
+            DreamberdValue::Object(obj) => {
+                // Export object with properties
+                let mut props: Vec<String> = Vec::new();
+                for (key, val) in &obj.namespace {
+                    let val_expr = self.serialize_value_to_expression(val, depth + 1)?;
+                    props.push(format!("\"{}\": {}", key, val_expr));
+                }
+                // Include class name and properties
+                if props.is_empty() {
+                    Ok(format!("new {}()", obj.class_name))
+                } else {
+                    Ok(format!("new {}() /* with properties: {} */", obj.class_name, props.join(", ")))
+                }
+            }
+            DreamberdValue::Undefined(_) => {
+                Ok("undefined".to_string())
+            }
+            _ => {
+                // For unsupported types (BuiltinFunction, SpecialBlank, etc.)
+                Ok("undefined".to_string())
+            }
+        }
     }
 
     /// Execute reverse statement - reverses the effects of previous operations
@@ -1404,5 +1596,18 @@ impl Interpreter {
         }
         
         Ok(())
+    }
+
+    /// Block and wait for input events, executing matching after-statements until interrupted.
+    pub fn wait_for_events(&mut self) -> Result<(), DreamberdError> {
+        use std::time::Duration;
+        println!("Waiting for input events (after-statements). Press Ctrl+C to exit.");
+        loop {
+            // Poll input events and execute bodies
+            self.poll_input_events()?;
+            // Also run any scheduled (time-based) after statements if they were deferred
+            self.execute_scheduled_after_statements()?;
+            std::thread::sleep(Duration::from_millis(50));
+        }
     }
 }

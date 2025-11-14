@@ -16,6 +16,7 @@ pub fn is_int(x: f64) -> bool {
 
 /// Gulf of Mexico value types
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub enum DreamberdValue {
     Number(DreamberdNumber),
     String(DreamberdString),
@@ -52,6 +53,7 @@ impl PartialEq for DreamberdValue {
 }
 
 impl DreamberdValue {
+    #[allow(dead_code)]
     pub fn type_name(&self) -> &'static str {
         match self {
             DreamberdValue::Number(_) => "Number",
@@ -223,6 +225,7 @@ pub struct DreamberdMap {
 }
 
 impl DreamberdMap {
+    #[allow(dead_code)]
     pub fn new() -> Self {
         DreamberdMap {
             values: HashMap::new(),
@@ -345,6 +348,7 @@ impl VariableLifetime {
 /// Variable with multiple lifetimes
 #[derive(Debug, Clone)]
 pub struct Variable {
+    #[allow(dead_code)]
     pub name: String,
     pub lifetimes: Vec<VariableLifetime>,
     pub prev_values: Vec<DreamberdValue>,
@@ -379,6 +383,7 @@ impl Variable {
     }
 
     /// Get current value (alias for value())
+    #[allow(dead_code)]
     pub fn get_current(&self) -> Option<&DreamberdValue> {
         self.value()
     }
@@ -410,7 +415,7 @@ impl Variable {
             (self.value(), self.get_previous(0)) {
             
             // Simple toggle pattern
-            if let (Some(c), Some(p)) = (current.value, prev.value) {
+            if let (Some(c), Some(_p)) = (current.value, prev.value) {
                 return Some(DreamberdValue::Boolean(DreamberdBoolean::new(Some(!c))));
             }
         }
@@ -470,6 +475,7 @@ pub fn db_to_boolean(value: &DreamberdValue) -> DreamberdBoolean {
     }
 }
 
+#[allow(dead_code)]
 pub fn db_to_number(value: &DreamberdValue) -> DreamberdNumber {
     match value {
         DreamberdValue::Number(n) => n.clone(),

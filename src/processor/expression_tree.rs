@@ -103,6 +103,7 @@ pub struct IndexNode {
 }
 
 impl IndexNode {
+    #[allow(dead_code)]
     pub fn new(value: ExpressionTreeNode, index: ExpressionTreeNode) -> Self {
         IndexNode {
             value: Box::new(value),
@@ -447,6 +448,7 @@ fn parse_primary(
 }
 
 /// Get the first token from an expression tree
+#[allow(dead_code)]
 pub fn get_expr_first_token(expr: &ExpressionTreeNode) -> Option<&Token> {
     match expr {
         ExpressionTreeNode::Value(v) => Some(&v.token),

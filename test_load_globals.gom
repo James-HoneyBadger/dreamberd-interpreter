@@ -1,0 +1,9 @@
+// Test that immutable globals are loaded from storage
+print("myGlobal from storage: ")!
+print(myGlobal)!
+
+print("appName from storage: ")!
+print(appName)!
+
+print("pi from storage: ")!
+print(pi)!

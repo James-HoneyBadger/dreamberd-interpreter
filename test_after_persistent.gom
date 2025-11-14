@@ -1,0 +1,2 @@
+after persist "click" { print "Persistent click detected"! }
+print "Ready for persistent events"!

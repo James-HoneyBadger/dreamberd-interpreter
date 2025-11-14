@@ -13,9 +13,13 @@ mod builtin;
 mod interpreter;
 mod processor;
 mod serialize;
+mod storage;
+mod alias; // keyword aliasing & persistence
+#[cfg(test)]
+mod tests_alias_trigger; // tests for alias & trigger builtins
 
-use base::DreamberdError;
 use processor::{tokenize, generate_syntax_tree};
+use alias::canonicalize_tokens;
 use interpreter::Interpreter;
 
 #[derive(Parser, Debug)]
@@ -63,7 +67,8 @@ fn run_repl() {
 
                 // Tokenize and execute
                 match tokenize("__repl__", &line) {
-                    Ok(tokens) => {
+                    Ok(mut tokens) => {
+                        canonicalize_tokens(&mut tokens);
                         match generate_syntax_tree("__repl__", tokens, &line) {
                             Ok(statements) => {
                                 interpreter.code = line.clone();
@@ -126,29 +131,32 @@ fn run_file(filename: &str) {
 
     for (file_name, file_code) in files {
         let display_name = file_name.unwrap_or_else(|| "__unnamed_file__".to_string());
-        
+
         match tokenize(&display_name, &file_code) {
-            Ok(tokens) => {
-                match generate_syntax_tree(&display_name, tokens, &file_code) {
-                    Ok(statements) => {
-                        let mut interpreter = Interpreter::new(display_name.clone(), file_code.clone());
-                        
-                        match interpreter.interpret_code_statements(statements) {
-                            Ok(_) => {
-                                // Successfully executed
-                            }
-                            Err(e) => {
-                                eprintln!("{}", e);
-                                std::process::exit(1);
+            Ok(mut tokens) => { canonicalize_tokens(&mut tokens); match generate_syntax_tree(&display_name, tokens, &file_code) {
+                Ok(statements) => {
+                    let mut interpreter = Interpreter::new(display_name.clone(), file_code.clone());
+                    match interpreter.interpret_code_statements(statements) {
+                        Ok(_) => {
+                            // If after-statements were registered, enter event loop
+                            if !interpreter.after_statements.is_empty() {
+                                println!("{}", "After-statements registered; entering event loop... (Ctrl+C to exit)".yellow());
+                                if let Err(e) = interpreter.wait_for_events() {
+                                    eprintln!("{}", e);
+                                }
                             }
                         }
-                    }
-                    Err(e) => {
-                        eprintln!("{}", e);
-                        std::process::exit(1);
+                        Err(e) => {
+                            eprintln!("{}", e);
+                            std::process::exit(1);
+                        }
                     }
                 }
-            }
+                Err(e) => {
+                    eprintln!("{}", e);
+                    std::process::exit(1);
+                }
+            }},
             Err(e) => {
                 eprintln!("{}", e);
                 std::process::exit(1);
@@ -156,15 +164,7 @@ fn run_file(filename: &str) {
         }
     }
 
-    println!(
-        "{}",
-        "Code has finished executing. Press Ctrl+C to stop waiting for when-statements and after-statements."
-            .yellow()
-    );
-
-    // Keep running to handle async operations
-    // In a full implementation, this would handle when-statements and after-statements
-    std::thread::park();
+    println!("{}", "Code execution finished.".yellow());
 }
 
 /// Parse multi-file format where files are separated by ===== filename =====

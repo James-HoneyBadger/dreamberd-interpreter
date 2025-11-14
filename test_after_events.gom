@@ -1,0 +1,7 @@
+// Test event-driven after-statements
+// Click the mouse or press the 'A' key to trigger handlers.
+
+after "click" { print("Mouse click detected")! }
+after "keydown:KeyA" { print("Key A pressed")! }
+
+print("Ready for input events (click or press A)...")!
