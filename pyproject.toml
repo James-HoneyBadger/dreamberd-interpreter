@@ -1,9 +1,12 @@
 [tool.poetry]
 name = "gulfofmexico"
 version = "0.1.1"
-description = "An interpreter for the perfect programming language, GulfOfMexico."
+description = "Experimental interpreter with probabilistic variables, negative indexing, and temporal lifetimes"
 readme = "README.md"
-authors = ["James HoneyBadger <your-email@example.com>"]
+authors = ["James HoneyBadger"]
+license = "MIT"
+repository = "https://github.com/James-HoneyBadger/GOM"
+keywords = ["interpreter", "esoteric", "programming-language"]
 
 [tool.poetry.dependencies]
 python = "^3.10"

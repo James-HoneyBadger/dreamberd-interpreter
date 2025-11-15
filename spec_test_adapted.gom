@@ -1,6 +1,7 @@
 // Gulf of Mexico Specification Compliance Test (Adapted for Current Implementation)
 // This test verifies implemented features against the original language specification
-// Based on: https://github.com/TodePond/GulfOfMexico---e-acc
+// Gulf of Mexico Language Feature Tests
+// Comprehensive test suite for language specification compliance
 
 print "=== Gulf of Mexico Specification Compliance Test ==="!
 

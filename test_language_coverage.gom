@@ -23,7 +23,7 @@ if (x == 5) {
    print("Conditional works!")!
 }!
 
-// Test loops (should not exist in DreamBerd)
+// Test loops (not implemented in this language)
 // for (i = 0; i < 5; i++) {
 //     print("This should not work")!
 // }!

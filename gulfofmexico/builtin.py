@@ -585,12 +585,48 @@ KEYWORDS = {
     + FUNCTION_KEYWORDS
 }
 
-############################################
-##           DREAMBERD BUILTINS           ##
-############################################
+NUMBER_NAME_KEYWORDS = {
+    name: Name(name, GulfOfMexicoNumber(num))
+    for num, name in enumerate(
+        [
+            "zero",
+            "one",
+            "two",
+            "three",
+            "four",
+            "five",
+            "six",
+            "seven",
+            "eight",
+            "nine",
+            "ten",
+            "eleven",
+            "twelve",
+            "thirteen",
+            "fourteen",
+            "fifteen",
+            "sixteen",
+            "seventeen",
+            "eighteen",
+            "ninteen",
+        ]
+    )
+} | {
+    name: Name(name, __number_function_maker(num))
+    for num, name in zip(
+        range(20, 100, 10),
+        ["twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"],
+    )
+}
+
+KEYWORDS |= (
+    BUILTIN_FUNCTION_KEYWORDS
+    | BUILTIN_VALUE_KEYWORDS
+    | MATH_FUNCTION_KEYWORDS
+    | NUMBER_NAME_KEYWORDS
+)
 
 
-# this is for functions that return the same value, like current or new
 def db_identity(val: GulfOfMexicoValue) -> GulfOfMexicoValue:
     return val
 
