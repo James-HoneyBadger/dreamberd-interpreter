@@ -1,381 +1,760 @@
-# Gulf of Mexico Interpreter
+# Gulf of Mexico Interpreter# Gulf of Mexico Interpreter
 
-This is the interpreter for the perfect programming language. It is made in Python, for the sole reason that the interpreter can itself be interpreted. Future plans include creating a Gulf of Mexico interpreter in GulfOfMexico, so that the Gulf of Mexico Interpreter can be passed into the Gulf of Mexico Interpreter Interpreter, which is then interpreted by the Gulf of Mexico Interpreter Interpreter Interpreter (a.k.a. Python). This may or may not be created due to difficulty moving everything over and whatnot. I'll try though.
 
-This is incredibly slow. My implementation of Gulf of Mexico is suboptimal, which itself runs on a subperformant language (Python), which runs on a pretty fast language (C). However, speed was never a focus in creating my interpreter for Gulf of Mexico and shouldn't be - it's not a language meant for day-to-day use - it's a work of art.
 
-## Architecture
+An interpreter for the Gulf of Mexico programming language - an esoteric language featuring exclamation mark terminators, -1-indexed arrays, four variable types, and many other delightful quirks.This is the interpreter for the perfect programming language. It is made in Python, for the sole reason that the interpreter can itself be interpreted. Future plans include creating a Gulf of Mexico interpreter in GulfOfMexico, so that the Gulf of Mexico Interpreter can be passed into the Gulf of Mexico Interpreter Interpreter, which is then interpreted by the Gulf of Mexico Interpreter Interpreter Interpreter (a.k.a. Python). This may or may not be created due to difficulty moving everything over and whatnot. I'll try though.
 
-The interpreter is a **monolithic Python implementation** (~2,900 lines in `gulfofmexico/interpreter.py`) that directly executes Gulf of Mexico code. It uses a three-stage pipeline:
 
-1. **Lexer** (`processor/lexer.py`) - Tokenizes source code
-2. **Parser** (`processor/syntax_tree.py`) - Builds abstract syntax tree (AST)
+
+## Quick StartThis is incredibly slow. My implementation of Gulf of Mexico is suboptimal, which itself runs on a subperformant language (Python), which runs on a pretty fast language (C). However, speed was never a focus in creating my interpreter for Gulf of Mexico and shouldn't be - it's not a language meant for day-to-day use - it's a work of art.
+
+
+
+```bash## Architecture
+
+# Install
+
+pip install -e .The interpreter is a **monolithic Python implementation** (~2,900 lines in `gulfofmexico/interpreter.py`) that directly executes Gulf of Mexico code. It uses a three-stage pipeline:
+
+
+
+# Run a program1. **Lexer** (`processor/lexer.py`) - Tokenizes source code
+
+gulfofmexico your_program.gom2. **Parser** (`processor/syntax_tree.py`) - Builds abstract syntax tree (AST)
+
 3. **Interpreter** (`interpreter.py`) - Directly executes AST using pattern matching
 
-**Note:** The `gulfofmexico/engine/` package contains an experimental modular architecture that is NOT used in production. The actual interpreter uses the original monolithic design in `interpreter.py`.
+# Interactive REPL
 
-📖 **For detailed architecture documentation, see [ACTUAL_ARCHITECTURE.md](ACTUAL_ARCHITECTURE.md)**
+gulfofmexico**Note:** The `gulfofmexico/engine/` package contains an experimental modular architecture that is NOT used in production. The actual interpreter uses the original monolithic design in `interpreter.py`.
 
-## Installation
 
-You can install Gulf of Mexico from PyPi, by doing any the following:
 
-```
+# Web-based IDE📖 **For detailed architecture documentation, see [ACTUAL_ARCHITECTURE.md](ACTUAL_ARCHITECTURE.md)**
+
+python -m gulfofmexico.ide --web
+
+```## Installation
+
+
+
+## InstallationYou can install Gulf of Mexico from PyPi, by doing any the following:
+
+
+
+### From Source```
+
 pip install GulfOfMexico 
-pip install "GulfOfMexico[input, globals]"
-pip install "GulfOfMexico[input]"
-pip install "GulfOfMexico[globals]"
-```
 
-Each of these commands installs Gulf of Mexico with the respective dependencies. `input` installs the `pynput` package and allows the use of `after` statements and event watchers. `globals` installs `PyGithub` and allows you to declare `const const const` variables that are publically stored using GitHub. Note: to use the latter, you must enter a [Personal Access Token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens) in the `GITHUB_ACCESS_TOKEN` environment variable.
+```bashpip install "GulfOfMexico[input, globals]"
+
+git clone https://github.com/James-HoneyBadger/GOM.gitpip install "GulfOfMexico[input]"
+
+cd GOMpip install "GulfOfMexico[globals]"
+
+python -m venv .venv```
+
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+
+pip install -e .Each of these commands installs Gulf of Mexico with the respective dependencies. `input` installs the `pynput` package and allows the use of `after` statements and event watchers. `globals` installs `PyGithub` and allows you to declare `const const const` variables that are publically stored using GitHub. Note: to use the latter, you must enter a [Personal Access Token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens) in the `GITHUB_ACCESS_TOKEN` environment variable.
+
+```
 
 ## Usage
 
+### Requirements
+
 Now that you have installed GulfOfMexico, you can run the REPL using the `$ GulfOfMexico` command, or you can run a file using `$ GulfOfMexico FILE`. Usage instructions here:
 
-```text
-usage: GulfOfMexico [-h] [-s] [file]
+- Python 3.10 or higher
 
-positional arguments:
+- Optional dependencies:```text
+
+  - `PySide6` or `PyQt5` for Qt-based GUI (not required for web IDE)usage: GulfOfMexico [-h] [-s] [file]
+
+  - `pynput` for input handling features
+
+  - `pygithub` for global variable featurespositional arguments:
+
   file                  the file containing your Gulf of Mexico code
 
+## Language Features
+
 options:
-  -h, --help            show this help message and exit
+
+### Statement Terminators  -h, --help            show this help message and exit
+
   -s, --show-traceback  show the full Python trackback upon errors
+
+All statements end with `!`:```
+
+
+
+```gom### REPL and CLI (module entry)
+
+print("Hello, World!")!
+
+const var x = 5!You can also use the Python module entry point, which runs the production interpreter and a robust REPL:
+
 ```
-
-### REPL and CLI (module entry)
-
-You can also use the Python module entry point, which runs the production interpreter and a robust REPL:
 
 ```bash
-python -m gulfofmexico                 # Start interactive REPL
+
+Debug mode statements end with `?`:python -m gulfofmexico                 # Start interactive REPL
+
 python -m gulfofmexico path/to/file.gom  # Execute a .gom file
-python -m gulfofmexico -c "print(123)!"   # Run inline code and exit
-python -m gulfofmexico -s path/file.gom   # Show full Python traceback on errors
-```
 
-REPL features:
+```gompython -m gulfofmexico -c "print(123)!"   # Run inline code and exit
 
-- Real execution path: tokenize → parse → interpret (no experimental engine)
-- Persistent state across inputs (variables, watchers, public globals)
-- Multi-line input with auto-continuation
-- Commands: `:help`, `:quit`, `:reset`, `:load <file>`, `:vars`
+print("Debug output")?python -m gulfofmexico -s path/file.gom   # Show full Python traceback on errors
+
+``````
+
+
+
+Multiple exclamation marks indicate confidence levels:REPL features:
+
+
+
+```gom- Real execution path: tokenize → parse → interpret (no experimental engine)
+
+const var important = 100!!- Persistent state across inputs (variables, watchers, public globals)
+
+const var very_important = 200!!!- Multi-line input with auto-continuation
+
+```- Commands: `:help`, `:quit`, `:reset`, `:load <file>`, `:vars`
+
    `:history`, `:save <file> [all|last|<n>]`, `:open <file>`,
-   `:run <n>`, `:clip [last|<n>]`
+
+### Variable Declarations   `:run <n>`, `:clip [last|<n>]`
+
 - `:run <n|last>`, `:clip [last|<n>]`
 
+Four combinations of mutability:
+
 Optional: Clipboard support in REPL
 
-```bash
-Optional: Clipboard support in REPL
-```
+```gom
 
-:clip` command will print the requested block so you can copy it manually.
+const const name = "Alice"!     // Cannot reassign or modify```bash
+
+const var count = 0!            // Can modify, cannot reassignOptional: Clipboard support in REPL
+
+var const limit = 100!          // Can reassign, cannot modify```
+
+var var value = 5!              // Can reassign and modify
+
+```:clip` command will print the requested block so you can copy it manually.
+
 `:clip` command will print the requested block so you can copy it manually.
+
+### Array Indexing
 
 ### IDE (GUI)
 
+Arrays start at **-1** (not 0):
+
 An experimental PySide6-based GUI IDE is included.
 
-- Install GUI deps (Poetry extra): `poetry install -E ide`
-- Or with pip: `pip install PySide6`
-- Launch:
+```gom
 
-```bash
+const const scores = [3, 2, 5]!- Install GUI deps (Poetry extra): `poetry install -E ide`
+
+print(scores[-1])!  // Prints: 3 (first element)- Or with pip: `pip install PySide6`
+
+print(scores[0])!   // Prints: 2 (second element)- Launch:
+
+print(scores[1])!   // Prints: 5 (third element)
+
+``````bash
+
 python -m gulfofmexico.ide     # module entry
-gom-ide                        # via Poetry console script
+
+### Float Indexinggom-ide                        # via Poetry console script
+
 ```
+
+Insert elements at float indices:
 
 If PySide6 is not installed, the launcher prints a helpful message.
 
-## TODO
+```gom
 
-- Add another expression type which is just the dot operator, used for indexing and accessing names
-- Better debugging (pretty limited for the time being)
+var var numbers = [1, 2, 3]!## TODO
+
+numbers[0.5] = 99!
+
+print(numbers)!  // [1, 99, 2, 3]- Add another expression type which is just the dot operator, used for indexing and accessing names
+
+```- Better debugging (pretty limited for the time being)
+
 - A much better standard library
-- Allow for declaring basic objects with {} and other things.
+
+### Functions- Allow for declaring basic objects with {} and other things.
+
 - Add a way to deal with file objects
+
+Multiple function keywords (all equivalent):
 
 ## Absent Features
 
-The goal of this project is to implement every feature from the Gulf of Mexico language. A list of features is in the README file of the project, linked [here](https://github.com/TodePond/GulfOfMexico---e-acc). Here is a working list of features that there is no chance I will implement (new features may be added - or I should say, removed - as I work on this project and realize I'm too stupid to implement them):
+```gom
 
-- DB3X: I am not going to even try to parse XML AND parse DB code.
+function add(a, b) => {The goal of this project is to implement every feature from the Gulf of Mexico language. A list of features is in the README file of the project, linked [here](https://github.com/TodePond/GulfOfMexico---e-acc). Here is a working list of features that there is no chance I will implement (new features may be added - or I should say, removed - as I work on this project and realize I'm too stupid to implement them):
+
+   return a + b!
+
+}!- DB3X: I am not going to even try to parse XML AND parse DB code.
+
 - Regex: Since type hints seem to not even do anything there is no point in implementing a Regex parser.
-- "Variable Hoisting" (being able to declare variables with a negative lifetime): Given the fact that keywords can be renamed and reassigned in this language, it does not make sense to implement this as the following breaks:
 
-    ```javascript
-    print(name)
-    var const = "lol";
+func multiply(x, y) => x * y!- "Variable Hoisting" (being able to declare variables with a negative lifetime): Given the fact that keywords can be renamed and reassigned in this language, it does not make sense to implement this as the following breaks:
+
+
+
+fun divide(a, b) => {    ```javascript
+
+   return a / b!    print(name)
+
+}!    var const = "lol";
+
     const const name<-2> = "Jake";
-    ```
+
+fn subtract(x, y) => x - y!    ```
+
+```
 
     It is impossible to evaluate the expression on the right side of the `name` declaration after the print statement. Additionally, doing so doesn't account for possible renaming of keywords in the second line.
-- Any sort of autocomplete requires more brainpower than I am willing to put in.
 
-To my knowledge, everything else has been or will be implemented.
+### Booleans- Any sort of autocomplete requires more brainpower than I am willing to put in.
 
-## Implemented Features
 
-These are features that are implemented according to the [GulfOfMexico specification](https://github.com/TodePond/GulfOfMexico---e-acc) in this interpreter.
 
-### Exclamation Marks
+Three-valued boolean system:To my knowledge, everything else has been or will be implemented.
 
-Be bold! End every statement with an exclamation mark!
 
-```javascript
+
+```gom## Implemented Features
+
+const const is_true = true!
+
+const const is_false = false!These are features that are implemented according to the [GulfOfMexico specification](https://github.com/TodePond/GulfOfMexico---e-acc) in this interpreter.
+
+const const is_maybe = maybe!
+
+```### Exclamation Marks
+
+
+
+### StringsBe bold! End every statement with an exclamation mark!
+
+
+
+Multiple quote styles:```javascript
+
 print("Hello world")!
+
+```gom```
+
+const const single = 'hello'!
+
+const const double = "world"!If you're feeling extra-bold, you can use even more!!!
+
+const const triple = """multiline
+
+string"""!```javascript
+
+```print("Hello world")!!!
+
 ```
 
-If you're feeling extra-bold, you can use even more!!!
-
-```javascript
-print("Hello world")!!!
-```
+Zero quotes (bare words):
 
 If you're unsure, that's ok. You can put a question mark at the end of a line instead. It prints debug info about that line to the console for you.
 
-```javascript
-print("Hello world")?
+```gom
+
+const const name = hello!  // Equivalent to "hello"```javascript
+
+```print("Hello world")?
+
 ```
+
+String interpolation with regional currency symbols:
 
 You might be wondering what Gulf of Mexico uses for the 'not' operator, which is an exclamation mark in most other languages. That's simple - the 'not' operator is a semi-colon instead.
 
-```javascript
-if (;false) {
-   print("Hello world")!
-}
-```
+```gom
 
-### Declarations
+const var name = "Alice"!```javascript
 
-There are four types of declaration. Constant constants can't be changed in any way.
+print("Hello ${name}!")!       // $-styleif (;false) {
 
-```javascript
-const const name = "Luke"!
-```
+print("Hello £{name}!")!       // £-style   print("Hello world")!
 
-Constant variables can be edited, but not re-assigned.
+print("Hello €{name}!")!       // €-style}
 
-```javascript
+``````
+
+
+
+### Classes### Declarations
+
+
+
+```gomThere are four types of declaration. Constant constants can't be changed in any way.
+
+class Player {
+
+   const var health = 100!```javascript
+
+   const var score = 0!const const name = "Luke"!
+
+}!```
+
+
+
+const var player = new Player()!Constant variables can be edited, but not re-assigned.
+
+print(player)!
+
+``````javascript
+
 const var name = "Luke"!
+
+### Conditionalsname.pop()!
+
 name.pop()!
-name.pop()!
-```
+
+```gom```
+
+const var x = 10!
 
 Variable constants can be re-assigned, but not edited.
 
-```javascript
-var const name = "Luke"!
-name = "Lu"!
+if (x > 5) {
+
+   print("Greater than 5")!```javascript
+
+}!var const name = "Luke"!
+
+```name = "Lu"!
+
 ```
+
+### Import/Export
 
 Variable variables can be re-assigned and edited.
 
-```javascript
-var var name = "Luke"!
-name = "Lu"!
+```gom
+
+// export.gom```javascript
+
+export const const message = "Hello"!var var name = "Luke"!
+
+export const var count = 42!name = "Lu"!
+
 name.push("k")!
-name.push("e")!
-```
 
-### Immutable Data
+// main.gomname.push("e")!
 
-**New for 2023!**<br>
+import message from "export.gom"!```
+
+print(message)!
+
+```### Immutable Data
+
+
+
+### Reverse Statement**New for 2023!**<br>
+
 Mutable data is an anti-pattern. Use the `const const const` keyword to make a constant constant constant. Its value will become constant and immutable, and will _never change_. Please be careful with this keyword, as it is very powerful, and will affect all users globally forever.
 
-```javascript
-const const const pi = 3.14!
-```
-
-#### Notes About Implementation
-
-This is added by me (the interpreter)! I wanted to share how this works.
-
-Thanks to [this repo](https://github.com/marcizhu/marcizhu) for helpful reference for issues and actions in Python.
-
-**Local Storage (Primary):** Immutable constants are stored locally in your home directory under `~/.GulfOfMexico_runtime/.immutable_constants` and `~/.GulfOfMexico_runtime/.immutable_constants_values/`. This ensures they persist across sessions and work offline.
-
-**Global Storage (Optional):** When possible, constants are also shared globally via GitHub Issues API:
-
-- On the user's side, open a GitHub issue with a title of the format `Create Public Global: {name};;;{confidence}` and the body containing the pickled version of the value.
-- Then, run a GitHub workflow that puts the issue body into a file under `global_objects/` and add an entry to `public_globals.txt` that contains the `name;;;id;;;confidence`
-- Finally, to retrieve these values, the content of each of these files is fetched and converted back into values.
-
-If GitHub is unavailable (no internet, no API token), the constants still work perfectly - they're just stored locally only.
-
-### Naming
-
-Both variables and constants can be named with any Unicode character or string.
+Undo variable assignments:
 
 ```javascript
+
+```gomconst const const pi = 3.14!
+
+var var x = 5!```
+
+print(x)!  // 5
+
+x = 10!#### Notes About Implementation
+
+print(x)!  // 10
+
+reverse!This is added by me (the interpreter)! I wanted to share how this works.
+
+print(x)!  // 5
+
+```Thanks to [this repo](https://github.com/marcizhu/marcizhu) for helpful reference for issues and actions in Python.
+
+
+
+### Temporal Keywords**Local Storage (Primary):** Immutable constants are stored locally in your home directory under `~/.GulfOfMexico_runtime/.immutable_constants` and `~/.GulfOfMexico_runtime/.immutable_constants_values/`. This ensures they persist across sessions and work offline.
+
+
+
+Access variable history:**Global Storage (Optional):** When possible, constants are also shared globally via GitHub Issues API:
+
+
+
+```gom- On the user's side, open a GitHub issue with a title of the format `Create Public Global: {name};;;{confidence}` and the body containing the pickled version of the value.
+
+var var x = 10!- Then, run a GitHub workflow that puts the issue body into a file under `global_objects/` and add an entry to `public_globals.txt` that contains the `name;;;id;;;confidence`
+
+x = 20!- Finally, to retrieve these values, the content of each of these files is fetched and converted back into values.
+
+x = 30!
+
+print(current(x))!   // 30If GitHub is unavailable (no internet, no API token), the constants still work perfectly - they're just stored locally only.
+
+print(previous(x))!  // 20
+
+```### Naming
+
+
+
+### OperatorsBoth variables and constants can be named with any Unicode character or string.
+
+
+
+**Arithmetic:** `+`, `-`, `*`, `/`, `^` (exponentiation)```javascript
+
 const const firstAlphabetLetter = 'A'!
-var const 👍 = True!
+
+**Comparison:** `>`, `<`, `>=`, `<=`, `==`, `!=`var const 👍 = True!
+
 var var 1️⃣ = 1!
+
+**Logical:** `&` (AND), `|` (OR), `;` (NOT)```
+
+
+
+**Division by zero returns `undefined`:**This includes numbers, and other language constructs.
+
+
+
+```gom```javascript
+
+const var result = 10 / 0!const const unchanging = const!
+
+print(result)!  // undefinedunchanging unchanging 5 = 4!
+
+```print(2 + 2 === 5)! //true
+
 ```
 
-This includes numbers, and other language constructs.
-
-```javascript
-const const unchanging = const!
-unchanging unchanging 5 = 4!
-print(2 + 2 === 5)! //true
-```
+### Delete Statement
 
 ### Arrays
 
+Delete values from memory:
+
 Some languages start arrays at `0`, which can be unintuitive for beginners. Some languages start arrays at `1`, which isn't representative of how the code actually works. Gulf of Mexico does the best of both worlds: Arrays start at `-1`.
 
-```javascript
-const const scores = [3, 2, 5]!
-print(scores[-1])! //3
-print(scores[0])!  //2
-print(scores[1])!  //5
-```
+```gom
 
-**New for 2022!**<br>
+delete 3!```javascript
+
+delete "hello"!const const scores = [3, 2, 5]!
+
+delete true!print(scores[-1])! //3
+
+```print(scores[0])!  //2
+
+print(scores[1])!  //5
+
+### Indentation```
+
+
+
+**All indentation must be multiples of 3 spaces:****New for 2022!**<br>
+
 You can now use floats for indexes too!
 
-```javascript
-const var scores = [3, 2, 5]!
-scores[0.5] = 4!
-print(scores)! //[3, 2, 4, 5]
-```
+```gom
 
-### When
+function example() => {```javascript
 
-In case you really need to vary a variable, the `when` keyword lets you check a variable each time it mutates.
+   const var x = 5!const var scores = [3, 2, 5]!
 
-```javascript
+   if (x > 0) {scores[0.5] = 4!
+
+      print("Positive")!print(scores)! //[3, 2, 4, 5]
+
+   }!```
+
+}!
+
+```### When
+
+
+
+Tabs count as 2 spaces (intentionally awkward).In case you really need to vary a variable, the `when` keyword lets you check a variable each time it mutates.
+
+
+
+## Running Programs```javascript
+
 const var health = 10!
-when (health = 0) {
+
+### Command Linewhen (health = 0) {
+
    print("You lose")!
-}
-```
+
+```bash}
+
+# Run a file```
+
+gulfofmexico program.gom
 
 #### Technical Info
 
-Hi! It's me again. I took some creative liberty implementing the `when` statement, here's how it works:
+# Run with Python module
+
+python -m gulfofmexico program.gomHi! It's me again. I took some creative liberty implementing the `when` statement, here's how it works:
+
+```
 
 - When defined, gather a list of names that are used in the expression of the statement.
-- If a variable is detected, cause the when satement to watch that variable.
-  - This is done in order to avoid watching names instead of variables when, say, a different variable with the same name is defined in a different scope.
-  - Speaking of scope, when statements for which changes are detected in a different scope (from that of definition) **use that scope within their code**.
-    - Looking back on my design decision, I am probably going to change this to make them always use the scope where they were defined.
-- Additionally, if a variable detected contains a mutable value, that mutable value is also watched, so the following code detects a change:
 
-    ```javascript
-    const var l = [1, 2, 3]!
-    when (l.length === 4) {
-       print l!  
-    }
+### Interactive REPL- If a variable is detected, cause the when satement to watch that variable.
+
+  - This is done in order to avoid watching names instead of variables when, say, a different variable with the same name is defined in a different scope.
+
+```bash  - Speaking of scope, when statements for which changes are detected in a different scope (from that of definition) **use that scope within their code**.
+
+gulfofmexico    - Looking back on my design decision, I am probably going to change this to make them always use the scope where they were defined.
+
+```- Additionally, if a variable detected contains a mutable value, that mutable value is also watched, so the following code detects a change:
+
+
+
+Features:    ```javascript
+
+- Multi-line statement support    const var l = [1, 2, 3]!
+
+- Arrow key navigation    when (l.length === 4) {
+
+- Command history       print l!  
+
+- Auto-completion    }
+
     const var l_alias = l!
-    l_alias[1.5] = 4!  // triggers the when statement
+
+### Web IDE    l_alias[1.5] = 4!  // triggers the when statement
+
     ```
 
-Therefore, the when statement can contain as complex an expression as desired. One small pitfall is that I've implemented it with recursion, which may cause performance issues (although I don't really care about performance, obvious in the fact that this is in Python).
+```bash
+
+python -m gulfofmexico.ide --webTherefore, the when statement can contain as complex an expression as desired. One small pitfall is that I've implemented it with recursion, which may cause performance issues (although I don't really care about performance, obvious in the fact that this is in Python).
+
+```
 
 ### Lifetimes
 
+Opens at `http://localhost:8080/ide`
+
 GulfOfMexico has a built-in garbage collector that will automatically clean up unused variables (note: this is simply Python's garbage collector, I didn't implement anything). However, if you want to be extra careful, you can specify a lifetime for a variable, with a variety of units.
 
-```javascript
-const const name<2> = "Luke"! // lasts for two lines
-const const name<20s> = "Luke"! // lasts for 20 seconds
-```
+Features:
+
+- Code editor with syntax awareness```javascript
+
+- Save/load `.gom` files (Ctrl+S / Ctrl+O)const const name<2> = "Luke"! // lasts for two lines
+
+- Run code (Ctrl+Enter)const const name<20s> = "Luke"! // lasts for 20 seconds
+
+- Built-in examples```
+
+- Error reporting
 
 By default, a variable will last until the end of the program. But you can make it last in between program-runs by specifying a longer lifetime.
 
+### Qt GUI IDE (if available)
+
 ```javascript
-const const name<Infinity> = "Luke"! // lasts forever
+
+```bashconst const name<Infinity> = "Luke"! // lasts forever
+
+python -m gulfofmexico.ide```
+
 ```
 
 > Yes, this is a thing. It stores your variables and values to a folder in your home directory.
 
+Note: Requires `PySide6` or `PyQt5`. Falls back to web IDE if Qt is unavailable.
+
 ### Loops
+
+## Project Structure
 
 Loops are a complicated relic of archaic programming languages. In GulfOfMexico, there are no loops.
 
-### Booleans
-
-Booleans can be `true`, `false` or `maybe`.
-
-```javascript
-const var keys = {}!
-after "keydown" { keys[event.key] = true! }
-after "keyup" { keys[event.key] = false! }
-
-function isKeyDown(key) => {
-   if (keys[key] = undefined) {
-      return maybe!
-   }
-   return keys[key]!
-}
 ```
 
-**Technical info:** Booleans are stored as one-and-a-half bits.
+gulfofmexico/### Booleans
 
-### Arithmetic
+├── __main__.py              # Entry point
+
+├── base.py                  # Core types and errorsBooleans can be `true`, `false` or `maybe`.
+
+├── builtin.py               # Built-in functions and values
+
+├── constants.py             # Language constants```javascript
+
+├── context.py               # Execution contextconst var keys = {}!
+
+├── interpreter.py           # Main interpreterafter "keydown" { keys[event.key] = true! }
+
+├── handlers.py              # Statement handlersafter "keyup" { keys[event.key] = false! }
+
+├── repl.py                  # Interactive REPL
+
+├── processor/function isKeyDown(key) => {
+
+│   ├── lexer.py            # Tokenization   if (keys[key] = undefined) {
+
+│   ├── syntax_tree.py      # AST generation      return maybe!
+
+│   └── expression_tree.py  # Expression parsing   }
+
+├── ide/   return keys[key]!
+
+│   ├── web_ide.py          # Web-based IDE}
+
+│   ├── app.py              # Qt GUI application```
+
+│   ├── editor.py           # Code editor widget
+
+│   └── highlighter.py      # Syntax highlighting**Technical info:** Booleans are stored as one-and-a-half bits.
+
+└── plugins/
+
+    └── example_custom_statement.py  # Plugin example### Arithmetic
+
+```
 
 GulfOfMexico has significant whitespace. Use spacing to specify the order of arithmetic operations.
 
+## Development
+
 ```javascript
-print(1 + 2*3)! //7
+
+### Running Testsprint(1 + 2*3)! //7
+
 print(1+2 * 3)! //9
+
+```bash```
+
+# Run a test file
+
+python -m gulfofmexico test_features.gomUnlike some other languages, Gulf of Mexico allows you to use the caret (^) for exponentiation.
+
+
+
+# Run examples```javascript
+
+python -m gulfofmexico examples/hello.gomprint(1^1)! // 1
+
+```print(2^3)! // 8
+
 ```
 
-Unlike some other languages, Gulf of Mexico allows you to use the caret (^) for exponentiation.
-
-```javascript
-print(1^1)! // 1
-print(2^3)! // 8
-```
+### Creating .gom Programs
 
 You can also use the number name, for example:
 
-```javascript
-print(one+two)! // 3
-print  (twenty two  +  thirty three)!  // 55
-```
+1. Use `.gom` file extension
 
-> Yes, the second line is also valid. In an effort to preserve my sanity, I have limited this quirk to all numbers up to 99. After that, you're on your own.
+2. All statements end with `!````javascript
 
-### Indents
+3. Use 3-space indentationprint(one+two)! // 3
 
-When it comes to indentation, Gulf of Mexico strikes a happy medium that can be enjoyed by everyone: All indents must be 3 spaces long.
+4. Arrays start at index -1print  (twenty two  +  thirty three)!  // 55
 
-```javascript
-function main() => {
-   print("GulfOfMexico is the future")!
+5. Have fun with the quirks!```
+
+
+
+## Examples> Yes, the second line is also valid. In an effort to preserve my sanity, I have limited this quirk to all numbers up to 99. After that, you're on your own.
+
+
+
+See the `examples/` directory for sample programs:### Indents
+
+
+
+- `hello.gom` - Hello WorldWhen it comes to indentation, Gulf of Mexico strikes a happy medium that can be enjoyed by everyone: All indents must be 3 spaces long.
+
+- `calculator.gom` - Basic calculator
+
+- `array_testing.gom` - Array manipulation```javascript
+
+- `mandelbrot.gom` - Mandelbrot set generatorfunction main() => {
+
+- `sierpinski.gom` - Sierpinski triangle   print("GulfOfMexico is the future")!
+
 }
-```
 
--3 spaces is also allowed.
+## Specification Compliance```
 
-```javascript
-   function main() => {
-print("GulfOfMexico is the future")!
-   }
-```
 
-> Note: Your code will err if you have indents that are not a multiple of three.
 
-### Equality
+This interpreter implements **~92% of the Gulf of Mexico specification**, including:-3 spaces is also allowed.
 
-JavaScript lets you do different levels of comparison. `==` for loose comparison, and `===` for a more precise check. Gulf of Mexico takes this to another level.
+
+
+✅ Exclamation mark terminators```javascript
+
+✅ Four variable declaration types     function main() => {
+
+✅ -1-indexed arrays with float indexingprint("GulfOfMexico is the future")!
+
+✅ Multiple function keywords   }
+
+✅ Three-valued booleans```
+
+✅ String quote variations
+
+✅ Import/export system> Note: Your code will err if you have indents that are not a multiple of three.
+
+✅ Reverse statements
+
+✅ Temporal keywords (previous/current)### Equality
+
+✅ Delete statements
+
+✅ Classes with constructorsJavaScript lets you do different levels of comparison. `==` for loose comparison, and `===` for a more precise check. Gulf of Mexico takes this to another level.
+
+✅ Division by zero handling
 
 You can use `==` to do a loose check.
 
+See [LANGUAGE_REFERENCE.md](LANGUAGE_REFERENCE.md) for complete language documentation.
+
 ```javascript
-3.14 == "3.14"! // true
+
+## License3.14 == "3.14"! // true
+
 ```
+
+See [LICENSE](LICENSE) file for details.
 
 You can use `===` to do a more precise check.
 
+## Credits
+
 ```javascript
-3.14 === "3.14"! // false
+
+Inspired by the [DreamBerd](https://github.com/TodePond/DreamBerd) programming language.3.14 === "3.14"! // false
+
 ```
+
+Developed by James HoneyBadger.
 
 You can use `====` to be EVEN MORE precise!
 
