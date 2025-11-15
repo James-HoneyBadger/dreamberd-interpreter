@@ -1631,7 +1631,7 @@ def handle_next_expressions(
     expr: ExpressionTreeNode, namespaces: list[Namespace]
 ) -> tuple[ExpressionTreeNode, set[tuple[str, int]], set[str]]:
     """
-    This function looks for the "next" keyword in an expression, and detects seperate await modifiers for that keyword.
+    This function looks for the "next" keyword in an expression, and detects separate await modifiers for that keyword.
     Then, it removes the "next" and "await next" nodes from the ExpressionTree, and returns the head of the tree.
     Additionally, every name that appears in the function as a next or async next, its value is saved in a temporary namespace.
     With the returned set of names that are used in "next" and "await next", we can insert these into a dictionary

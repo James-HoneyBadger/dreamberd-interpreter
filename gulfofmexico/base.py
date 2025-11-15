@@ -154,7 +154,7 @@ class OperatorType(Enum):
     LE = "<="
     OR = "|"
     AND = "&"
-    COM = ","  # this is just here to seperate variables in a function
+    COM = ","  # this is just here to separate variables in a function
     E = "="
     EE = "=="
     EEE = "==="

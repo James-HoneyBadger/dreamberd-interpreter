@@ -555,7 +555,7 @@ def create_scoped_code_statement(
     # finally finally, check for the after or when statement -- this will have identical syntax to the conditional so there
     # is no point in doing anything extra special
 
-    # this dude is seperated to another function because the same code is reused in () => ... functions (no scope)
+    # this dude is separated to another function because the same code is reused in () => ... functions (no scope)
     possibilities = []
     if can_be_function:
         return create_function_definition(

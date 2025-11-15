@@ -157,7 +157,7 @@ after <2.0> {
 - `sleep()` `exit()` - Control
 - `regex_match()` `regex_findall()` `regex_replace()` - Regex
 - Math functions: `sin` `cos` `sqrt` `log` etc.
-- Word numbers: `zero` through `ninteen`, `twenty()` `thirty()` etc.
+- Word numbers: `zero` through `nineteen`, `twenty()` `thirty()` etc.
 
 ## Debug Output
 
