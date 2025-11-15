@@ -1,3 +1,0 @@
-print(regex_match "hello,hello world")!
-print(regex_findall "d+,abc123def456")!
-print(regex_replace "world,universe,hello world")!

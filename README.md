@@ -1,8 +1,6 @@
 # GOM - Gulf of Mexico Interpreter
 
-A Python interpreter for an experimental programming language with unique features including negative array indexing, probabilistic variables, and reactive programming.
-
-This implementation is based on the conceptual design of the **Gulf of Mexico**, the perfect programming language created by [Lu Wilson (TodePond)](https://github.com/TodePond/GulfOfMexico).
+This implementation is based on the conceptual design of **Gulf of Mexico**, the perfect programming language created by Lu Wilson (TodePond) (https://github.com/TodePond/GulfOfMexico).
 
 ## Installation
 
@@ -207,4 +205,4 @@ GitHub: [James-HoneyBadger](https://github.com/James-HoneyBadger)
 
 ## License
 
-This is free and unencumbered software released into the public domain. See [LICENSE](LICENSE) for details.
+This is free and unencumbered software released into the public domain.
