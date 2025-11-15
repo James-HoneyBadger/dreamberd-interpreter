@@ -1,4 +1,0 @@
-var x = 5!
-const const p = next x!
-x = 10!
-print(p)!

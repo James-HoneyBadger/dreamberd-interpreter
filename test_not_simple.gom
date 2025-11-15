@@ -1,8 +1,0 @@
-// Simple NOT operator test to isolate parsing issues
-
-const const val = true!
-print(val)!
-
-// Test basic NOT
-const const notVal = ;val!
-print(notVal)!

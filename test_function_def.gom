@@ -1,6 +1,0 @@
-// Test function definition parsing
-function greet(name) {
-   print("Hello", name)!
-}
-
-greet("World")!

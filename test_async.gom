@@ -1,7 +1,0 @@
-async function asyncGreet(name) {
-   print("Hello async", name)!
-}
-
-print("Calling async function")!
-asyncGreet("World")!
-print("Done")!

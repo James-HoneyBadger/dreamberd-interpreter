@@ -1,7 +1,0 @@
-const const arr = [1, 2, 3]!
-print("First element (index -1):")!
-print(arr[-1])!
-print("Second element (index 0):")!
-print(arr[0])!
-print("Third element (index 1):")!
-print(arr[1])!

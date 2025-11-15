@@ -1,9 +1,0 @@
-fn test_func(param) => {
-   const counter = 0!
-   when (counter < param) {
-      print "Hello"!
-      counter = counter + 1!
-   }
-}
-
-test_func(3)!

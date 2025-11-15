@@ -1,6 +1,0 @@
-// Test when statement after lifetime fix
-var counter = 0!
-when counter > 5 {
-   print("Counter exceeded 5!")!
-}!
-counter = 6!

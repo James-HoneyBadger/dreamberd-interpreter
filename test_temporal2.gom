@@ -1,5 +1,0 @@
-var x = 5!
-print("current x:", x)!
-print("previous x:", previous x)!
-x = 10!
-print("after setting x to 10, previous x:", previous x)!

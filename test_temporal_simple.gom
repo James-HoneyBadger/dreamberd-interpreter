@@ -1,4 +1,0 @@
-// Test temporal keyword parsing
-x = 5!
-print("current(x):", current(x))!
-print("previous(x):", previous(x))!

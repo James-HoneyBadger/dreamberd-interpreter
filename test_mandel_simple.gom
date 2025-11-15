@@ -1,8 +1,0 @@
-
-fn test(y) => {
-   const y_counter = 0!
-   when (y_counter < y) {
-      print 'inside when'!
-   }
-}
-test(5)!

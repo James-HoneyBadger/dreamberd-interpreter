@@ -1,9 +1,0 @@
-const const arr = [1, 2, 3]!
-print("Original array:")!
-print(arr)!
-print("Setting arr[0.5] = 99")!
-arr[0.5] = 99!
-print("Array after insertion:")!
-print(arr)!
-print("Accessing arr[0.5]:")!
-print(arr[0.5])!

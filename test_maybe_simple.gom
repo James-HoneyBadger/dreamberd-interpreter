@@ -1,8 +1,0 @@
-// Simple test of maybe keyword
-x = true!
-y = false!
-z = maybe!
-
-print("true:", x)!
-print("false:", y)!
-print("maybe:", z)!

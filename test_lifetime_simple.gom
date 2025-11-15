@@ -1,3 +1,0 @@
-// Simple lifetime test
-const<5> x = "line-based lifetime"!
-print("x:", x)!

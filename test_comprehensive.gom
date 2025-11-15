@@ -1,6 +1,0 @@
-print("Testing Gulf of Mexico interpreter")!
-const const a = 5!
-var b = 10!
-const result = a * b + 2!
-print("Result:")!
-print(result)!

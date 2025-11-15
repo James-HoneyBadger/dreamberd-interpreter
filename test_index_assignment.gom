@@ -1,8 +1,0 @@
-// Testing index assignment
-print("=== Testing Index Assignment ===")!
-var var arr = [10, 20, 30]!
-print("Original array:", arr)!
-arr[-1] = 100!
-print("After arr[-1] = 100:", arr)!
-arr[0] = 200!
-print("After arr[0] = 200:", arr)!

@@ -1,5 +1,0 @@
-var counter = 0!
-when counter > 5 {
-}!
-counter = 6!
-print("Assignment complete")

@@ -1,6 +1,0 @@
-// Testing variable assignment
-print("=== Testing Variable Assignment ===")!
-var var x = 10!
-print("Initial x:", x)!
-x = 20!
-print("After assignment:", x)!
