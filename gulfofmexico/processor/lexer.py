@@ -1,9 +1,30 @@
+"""
+Lexical Analyzer (Tokenizer) for Gulf of Mexico
+
+Converts source code into tokens for parsing. Implements Gulf of Mexico's unique
+string quoting system where matching quote counts determine string boundaries.
+
+Key Features:
+    - Flexible quoting: "" or '"' both create strings
+    - Quote count matching: equal counts on both sides define string boundaries
+    - Single-line comments with //
+    - Whitespace preservation for indentation enforcement
+    - Special empty value () tokenized as blank name
+
+Token Types Generated:
+    - Names (variables/keywords): alphanumeric sequences
+    - Strings: quoted sequences with count matching
+    - Numbers: handled during parsing, not lexing
+    - Operators: +, -, *, /, ^, ==, ===, ====, etc.
+    - Delimiters: {}, [], (), :, ;, |, &
+
+Inspired by: https://craftinginterpreters.com/scanning.html
+"""
+
 from __future__ import annotations
 from typing import Optional
 
 from gulfofmexico.base import Token, TokenType, ALPH_NUMS, raise_error_at_line
-
-# thanks : https://craftinginterpreters.com/scanning.html
 
 
 def add_to_tokens(

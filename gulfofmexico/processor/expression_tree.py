@@ -1,3 +1,41 @@
+"""
+Expression Tree Nodes for Gulf of Mexico
+
+Represents expressions as abstract syntax trees for evaluation.
+Each node type corresponds to a different expression construct.
+
+Node Types:
+    - ValueNode: Literals (numbers, strings, names)
+    - FunctionNode: Function calls with arguments
+    - ExpressionNode: Binary operations (+ - * / == etc.)
+    - SingleOperatorNode: Unary operations (- for negation, ; for not)
+    - IndexNode: Array/object indexing
+    - ListNode: List literals [1, 2, 3]
+
+Expression Building:
+    build_expression_tree() converts token lists into trees using
+    operator precedence and parentheses grouping. The tree is then
+    evaluated by evaluate_expression() in interpreter.py.
+
+Operator Precedence (highest to lowest):
+    1. Indexing: []
+    2. Function calls: ()
+    3. Exponentiation: ^
+    4. Unary: -, ;
+    5. Multiplication/Division: *, /
+    6. Addition/Subtraction: +, -
+    7. Comparison: <, >, <=, >=
+    8. Equality: =, ==, ===, ====
+    9. Logical AND: &
+    10. Logical OR: |
+
+Special Features:
+    - Short-circuit evaluation for & and |
+    - String interpolation: "${expression}" within strings
+    - Approximate equality with fuzzy matching
+    - Multiple equality levels (=, ==, ===, ====)
+"""
+
 from __future__ import annotations
 from abc import ABCMeta, abstractmethod
 from typing import Optional
@@ -14,13 +52,22 @@ from gulfofmexico.base import (
 
 
 class ExpressionTreeNode(metaclass=ABCMeta):
+    """Base class for all expression tree nodes."""
+
     @abstractmethod
     def to_string(self, tabs: int = 0) -> str:
+        """Convert node to indented string representation for debugging."""
         pass
 
 
-# things like the not operator
 class SingleOperatorNode(ExpressionTreeNode):
+    """Unary operator node (negation, logical not).
+
+    Operators:
+        - (minus): Negation for numbers, reverse for lists/strings
+        ; (semicolon): Logical NOT
+    """
+
     def __init__(self, expression: ExpressionTreeNode, operator: Token) -> None:
         self.expression = expression
         self.operator = operator

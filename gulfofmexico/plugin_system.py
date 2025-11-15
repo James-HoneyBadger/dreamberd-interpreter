@@ -1,10 +1,31 @@
-"""EXPERIMENTAL plugin system for Gulf of Mexico interpreter.
+"""
+EXPERIMENTAL Plugin System for Gulf of Mexico
 
 ⚠️ WARNING: This module is NOT used in production! ⚠️
 
-The actual Gulf of Mexico interpreter does not have a plugin system. This
-experimental module demonstrates how a plugin architecture could work with
-the experimental handler-based engine in gulfofmexico/engine/.
+The production Gulf of Mexico interpreter does NOT support plugins.
+All code execution flows through the monolithic interpreter.py.
+
+This experimental module demonstrates how a plugin architecture COULD work
+with the experimental handler-based engine in gulfofmexico/engine/, but:
+    - The handler-based engine is not used
+    - Plugins are not loaded
+    - No plugin APIs are exposed
+
+Purpose:
+    Proof-of-concept for future extensibility if the interpreter is
+    refactored to use the handler pattern instead of pattern matching.
+
+Theoretical Plugin Capabilities:
+    - Custom statement handlers
+    - Built-in function registration
+    - Custom operators
+    - Type definitions
+    - Syntax extensions
+
+Reality:
+    This code exists but is never executed. The production interpreter
+    is monolithic and does not have a plugin system.
 """
 
 from typing import Optional, Type, Callable
@@ -19,23 +40,20 @@ class Plugin(ABC):
     ⚠️ WARNING: Plugins are NOT supported in production! ⚠️
 
     This class demonstrates how plugins could work with the experimental
-    handler-based engine. The production interpreter does not support plugins.
+    handler-based engine. The production interpreter does not support plugins
+    and will never load or execute plugin code.
 
-    Experimental plugins can provide:
-    - Custom statement handlers
-    - Built-in functions
-    - Custom operators
-    - Type definitions
+    Theoretical plugin capabilities:
+        - Custom statement handlers for new syntax
+        - Built-in functions like print() or Math functions
+        - Custom operators beyond +, -, *, /
+        - Type definitions beyond Number, String, List
     """
 
     @property
     @abstractmethod
     def name(self) -> str:
-        """Plugin name.
-
-        Returns:
-            Name of the plugin
-        """
+        """Plugin identifier name."""
         pass
 
     @property

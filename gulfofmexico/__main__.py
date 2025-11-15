@@ -1,16 +1,28 @@
-"""Module entry point for Gulf of Mexico.
+"""
+Gulf of Mexico Command-Line Interface
 
-Usage:
-  - REPL (default):
-      python -m gulfofmexico
-  - Run a file:
-      python -m gulfofmexico <file.gom>
-  - Inline code:
-      python -m gulfofmexico -c "print(123)!"
-  - Show Python traceback on unhandled exceptions:
-      python -m gulfofmexico -s <file.gom>
+Entry point for running Gulf of Mexico from the command line.
 
-This uses the production interpreter path in gulfofmexico/interpreter.py.
+Usage Modes:
+    1. REPL (interactive):
+       $ python -m gulfofmexico
+
+    2. Execute file:
+       $ python -m gulfofmexico script.gom
+
+    3. Inline code:
+       $ python -m gulfofmexico -c "const x 123! print(x)!"
+
+    4. Debug mode (show Python traceback):
+       $ python -m gulfofmexico -s script.gom
+
+All modes use the production interpreter in gulfofmexico/interpreter.py.
+The experimental gulfofmexico/engine/ is never used.
+
+Execution Path:
+    - File mode: run_file() from gulfofmexico/__init__.py
+    - Inline mode: _run_inline() direct interpreter invocation
+    - REPL mode: repl_main() from gulfofmexico/repl.py
 """
 
 from __future__ import annotations
@@ -24,7 +36,15 @@ from gulfofmexico.repl import main as repl_main
 
 
 def _run_inline(code: str, show_tb: bool) -> int:
-    # Execute inline code via the production interpreter path
+    """Execute inline Gulf of Mexico code via production interpreter.
+
+    Args:
+        code: Source code string to execute
+        show_tb: Whether to show Python traceback on errors
+
+    Returns:
+        Exit code (0 for success, 1 for error)
+    """
     import gulfofmexico.interpreter as interpreter
     from gulfofmexico.processor.lexer import tokenize
     from gulfofmexico.processor.syntax_tree import generate_syntax_tree

@@ -1,3 +1,42 @@
+"""
+Built-in Types and Functions for Gulf of Mexico
+
+Defines all value types, variables, and built-in functions available in Gulf of Mexico.
+
+Value Types:
+    - GulfOfMexicoNumber: Numeric values with indexing support
+    - GulfOfMexicoString: Strings with fractional indexing
+    - GulfOfMexicoList: Lists with -1 based indexing
+    - GulfOfMexicoBoolean: Three-valued logic (true/false/maybe)
+    - GulfOfMexicoFunction: User-defined and async functions
+    - GulfOfMexicoObject: Class instances with namespaces
+    - GulfOfMexicoMap: Key-value dictionaries
+    - GulfOfMexicoPromise: Async value placeholders
+    - GulfOfMexicoKeyword: Reserved language keywords
+    - GulfOfMexicoUndefined: Undefined/null value
+
+Variable System:
+    - Variable: Probabilistic values with confidence levels
+    - VariableLifetime: Temporal and line-based expiration
+    - Name: Immutable named values
+
+Key Features:
+    - Fractional indexing: insert between elements (list[0.5] = x)
+    - -1 indexing: arrays start at -1 instead of 0
+    - Three-valued boolean logic for uncertainty
+    - Confidence-based variable lifetimes
+    - Mutable vs immutable modifiers (const/var)
+
+Built-in Functions:
+    - Type conversions: Number(), String(), Boolean()
+    - I/O: print(), read(), write()
+    - Control: sleep(), exit()
+    - Data structures: Map(), use() for signals
+    - Math functions: All from Python's math module
+    - Regex: regex_match(), regex_findall(), regex_replace()
+    - Word numbers: one, two, twenty, thirty, etc.
+"""
+
 from __future__ import annotations
 import functools
 import time

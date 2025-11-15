@@ -1,26 +1,32 @@
 """
-⭐ PRODUCTION INTERPRETER - THIS IS THE ACTUAL INTERPRETER USED IN PRODUCTION ⭐
+Gulf of Mexico Interpreter - Main Execution Engine
 
-This monolithic interpreter (~2,900 lines) is what actually executes Gulf of Mexico code.
+This is the production interpreter that executes Gulf of Mexico code (~2,900 lines).
+All execution flows through this monolithic implementation.
 
-EXECUTION PATH:
-    gulfofmexico/__init__.py → run_file()
-    → interpret_code_statements_main_wrapper() [THIS FILE]
-    → interpret_code_statements() [THIS FILE]
-    → Pattern matching on statement types [THIS FILE]
+Execution Flow:
+    1. gulfofmexico/__init__.py run_file() entry point
+    2. interpret_code_statements_main_wrapper() initializes context
+    3. interpret_code_statements() main loop with pattern matching
+    4. Individual statement handlers execute code
 
-The experimental gulfofmexico/engine/ package with handlers, caching, and plugins
-is NOT used in production. Everything goes through THIS file.
+Core Features Implemented:
+    - Probabilistic variables with confidence levels and lifetimes
+    - Temporal and line-based variable lifetimes
+    - -1 array indexing (Gulf of Mexico's key feature)
+    - Fractional array indexing with automatic insertion
+    - Approximate equality (~= with fuzzy ratios)
+    - next/previous value tracking and watchers
+    - async/await for concurrent execution
+    - when statement reactive programming
+    - const const const for immutable globals
+    - Class objects with namespaces
+    - String interpolation with ${}
+    - Flexible quoting system
 
-See ACTUAL_ARCHITECTURE.md for complete documentation.
+Note: gulfofmexico/engine/ contains experimental handler-based architecture
+that is NOT used in production. All code execution uses this file's pattern matching.
 """
-
-# a note about this file: i've appended a "; raise" at the end of nearly every custom raise_error_at_token call,
-# because pyright (my nvim LSP) doesn't recognize the code terminating at the raise_error_at_token, so I add this
-# to make sure it recognizes that and doesn't yell at me because I don't like being yelled at
-
-# thanks to Indently, I have now discovered the NoReturn type, and pyright shuts up :))))))))))))))))
-# i don't set column limits; if the code fits on my screen it's good.
 
 from __future__ import annotations
 import os

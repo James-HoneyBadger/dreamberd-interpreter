@@ -1,14 +1,29 @@
-"""EXPERIMENTAL interpreter engine with handler-based execution.
+"""
+EXPERIMENTAL Interpreter Engine - Handler-Based Architecture
 
 ⚠️ WARNING: This module is NOT used in production! ⚠️
 
-The actual Gulf of Mexico interpreter uses the monolithic implementation
-in gulfofmexico/interpreter.py (~2,900 lines). This experimental engine
-exists as a proof-of-concept for an alternative architecture but is NOT
-integrated into the main execution path.
+The production Gulf of Mexico interpreter uses the monolithic implementation
+in gulfofmexico/interpreter.py (~2,900 lines). This experimental engine exists
+as a proof-of-concept for alternative architecture but is NOT integrated.
 
-This module provides an InterpretEngine class that demonstrates how
-statement execution could work using a handler registry pattern.
+Architecture:
+    - InterpretEngine: Main engine class (unused in production)
+    - HandlerRegistry: Statement handler lookup system
+    - ExpressionEvaluator: Expression evaluation with optional caching
+    - NamespaceManager: Namespace and variable management
+
+Purpose:
+    This demonstrates how the interpreter COULD work with:
+    - Modular handler pattern instead of monolithic pattern matching
+    - Expression caching for repeated evaluations
+    - Plugin system for extensibility
+    - Cleaner separation of concerns
+
+Reality:
+    All production code execution flows through interpreter.py's
+    interpret_code_statements() function with direct pattern matching.
+    This experimental code exists for future refactoring exploration.
 """
 
 from typing import Optional

@@ -1,9 +1,35 @@
+"""
+Serialization for Gulf of Mexico Values
+
+Converts Gulf of Mexico values and Python objects to/from JSON for:
+    - Export/import between file sections
+    - Global variable storage (const const const)
+    - GitHub-based public globals repository
+
+Serialization Format:
+    {
+        "gulfofmexico_obj_type": "GulfOfMexicoNumber",  # or "Name", "Variable", etc.
+        "value": <serialized_data>
+    }
+
+Supported Types:
+    - All GulfOfMexico value types (Number, String, List, etc.)
+    - Name and Variable with lifetimes
+    - Token and CodeStatement AST nodes
+    - Python primitives (int, float, str, bool, list, dict)
+
+Usage:
+    - serialize_obj(value) -> dict: Convert to JSON-serializable dict
+    - deserialize_obj(dict) -> value: Reconstruct from serialized dict
+
+Note: Used by export/import statements and const const const global storage.
+"""
+
 import json
 import dataclasses
 from typing import Any, Callable, Type, Union, assert_never
 from gulfofmexico.base import NonFormattedError, Token, TokenType
 
-# BAD PRACTICE !!!
 from gulfofmexico.builtin import *
 from gulfofmexico.processor.syntax_tree import *
 
@@ -22,6 +48,7 @@ DataclassSerializations = Union[Name, Variable, GulfOfMexicoValue, CodeStatement
 
 
 def serialize_obj(obj: Any) -> SerializedDict:
+    """Convert Gulf of Mexico or Python object to JSON-serializable dict."""
     match obj:
         case Name() | Variable() | GulfOfMexicoValue() | CodeStatement() | Token():
             return serialize_gulfofmexico_obj(obj)

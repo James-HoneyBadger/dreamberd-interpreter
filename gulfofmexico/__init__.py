@@ -1,3 +1,29 @@
+"""
+Gulf of Mexico Package - Main Entry Point
+
+Provides the run_file() function that serves as the primary entry point for
+executing Gulf of Mexico source files.
+
+Execution Flow:
+    1. Read source file and split by ===== file markers
+    2. Tokenize code with gulfofmexico.processor.lexer
+    3. Generate syntax tree with gulfofmexico.processor.syntax_tree
+    4. Initialize namespaces with keywords and global variables
+    5. Execute via interpreter.interpret_code_statements_main_wrapper()
+    6. Handle exports between file sections
+    7. Wait for async/when statements to complete
+
+Multi-File Support:
+    Files can be split into sections using ===== markers:
+        ===== section_name =====
+    Each section acts as a separate importable file for export/import statements.
+
+Global Variables:
+    - Local immutable constants (const const const)
+    - Global variables from .gulfofmexico_runtime
+    - Public globals from GitHub repository (if available)
+"""
+
 import re
 import sys
 from time import sleep
@@ -19,7 +45,16 @@ __REPL_FILENAME = "__repl__"
 sys.setrecursionlimit(100000)
 
 
-def run_file(main_filename: str) -> None:  # idk what else to call this
+def run_file(main_filename: str) -> None:
+    """Execute a Gulf of Mexico source file.
+
+    Reads the file, splits by ===== markers, tokenizes, parses, and executes
+    each section. Handles export/import between sections. Waits for async
+    operations and when-statements after completion.
+
+    Args:
+        main_filename: Path to .gom source file
+    """
 
     with open(main_filename, "r", encoding="utf-8") as f:
         code_lines = f.readlines()
