@@ -5,6 +5,3 @@ dist/*
 secrets.txt
 
 
-# Added by cargo
-
-/target

@@ -1,9 +1,9 @@
 [tool.poetry]
 name = "gulfofmexico"
 version = "0.1.1"
-description = "Experimental interpreter with probabilistic variables, negative indexing, and temporal lifetimes"
+description = "Experimental interpreter based on Lu Wilson's (TodePond) Gulf of Mexico conceptual design - featuring probabilistic variables, negative indexing, and temporal lifetimes"
 readme = "README.md"
-authors = ["James HoneyBadger"]
+authors = ["James Temple <james@honey-badger.org>"]
 license = "MIT"
 repository = "https://github.com/James-HoneyBadger/GOM"
 keywords = ["interpreter", "esoteric", "programming-language"]

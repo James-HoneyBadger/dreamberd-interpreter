@@ -2,6 +2,8 @@
 
 A Python interpreter for an experimental programming language with unique features including negative array indexing, probabilistic variables, and reactive programming.
 
+This implementation is based on the conceptual design of the **Gulf of Mexico**, the perfect programming language created by [Lu Wilson (TodePond)](https://github.com/TodePond/GulfOfMexico).
+
 ## Installation
 
 ```bash
@@ -197,6 +199,12 @@ Web IDE: `http://localhost:8080/ide`
 - pygithub (optional)
 - PySide6/PyQt5 (optional, for Qt IDE)
 
+## Author
+
+James Temple  
+Email: james@honey-badger.org  
+GitHub: [James-HoneyBadger](https://github.com/James-HoneyBadger)
+
 ## License
 
-MIT License - Copyright (c) 2025 James HoneyBadger
+MIT License - Copyright (c) 2025 Honey Badger Universe
