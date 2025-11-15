@@ -585,47 +585,6 @@ KEYWORDS = {
     + FUNCTION_KEYWORDS
 }
 
-NUMBER_NAME_KEYWORDS = {
-    name: Name(name, GulfOfMexicoNumber(num))
-    for num, name in enumerate(
-        [
-            "zero",
-            "one",
-            "two",
-            "three",
-            "four",
-            "five",
-            "six",
-            "seven",
-            "eight",
-            "nine",
-            "ten",
-            "eleven",
-            "twelve",
-            "thirteen",
-            "fourteen",
-            "fifteen",
-            "sixteen",
-            "seventeen",
-            "eighteen",
-            "ninteen",
-        ]
-    )
-} | {
-    name: Name(name, __number_function_maker(num))
-    for num, name in zip(
-        range(20, 100, 10),
-        ["twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"],
-    )
-}
-
-KEYWORDS |= (
-    BUILTIN_FUNCTION_KEYWORDS
-    | BUILTIN_VALUE_KEYWORDS
-    | MATH_FUNCTION_KEYWORDS
-    | NUMBER_NAME_KEYWORDS
-)
-
 
 def db_identity(val: GulfOfMexicoValue) -> GulfOfMexicoValue:
     return val
@@ -932,7 +891,7 @@ NUMBER_NAME_KEYWORDS = {
             "sixteen",
             "seventeen",
             "eighteen",
-            "ninteen",
+            "nineteen",
         ]
     )
 } | {
