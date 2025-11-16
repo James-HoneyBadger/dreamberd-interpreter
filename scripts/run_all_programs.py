@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 import shlex
 
-ROOT = Path(__file__).parent
+ROOT = Path(__file__).parent.parent
 PROGRAMS = ROOT / "programs"
 TIMEOUT = 6  # seconds per file
 
