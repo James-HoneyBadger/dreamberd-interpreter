@@ -590,6 +590,42 @@ def db_identity(val: GulfOfMexicoValue) -> GulfOfMexicoValue:
     return val
 
 
+def db_new(val: GulfOfMexicoValue) -> GulfOfMexicoValue:
+    """Instantiate a new object from a class object.
+
+    If the input is a GulfOfMexicoObject (class), create a fresh instance with
+    the same class_name and a deep-copied namespace so instances don't share
+    mutable state. Otherwise, behave like identity.
+    """
+    from copy import deepcopy
+
+    if isinstance(val, GulfOfMexicoObject):
+        # Deep copy the namespace entries into a brand new object
+        new_namespace: dict[str, Union[Name, Variable]] = {}
+        for key, entry in val.namespace.items():
+            if isinstance(entry, Variable):
+                # Copy current lifetime value and preserve permissions/confidence
+                if not entry.lifetimes:
+                    continue
+                top = entry.lifetimes[0]
+                copied_value = deepcopy(top.value)
+                new_var = Variable(key, [], [])
+                new_var.add_lifetime(
+                    copied_value,
+                    top.confidence,
+                    100000000000,  # effectively infinite
+                    entry.can_be_reset,
+                    entry.can_edit_value,
+                )
+                new_namespace[key] = new_var
+            elif isinstance(entry, Name):
+                new_namespace[key] = Name(key, deepcopy(entry.value))
+        return GulfOfMexicoObject(val.class_name, new_namespace)
+
+    # Fallback to identity for non-class values
+    return val
+
+
 def db_map() -> GulfOfMexicoMap:
     return GulfOfMexicoMap({})
 
@@ -845,7 +881,7 @@ MATH_FUNCTION_KEYWORDS = {
     if not name.startswith("__")
 }  # the frick is this
 BUILTIN_FUNCTION_KEYWORDS = {
-    "new": Name("new", BuiltinFunction(1, db_identity)),
+    "new": Name("new", BuiltinFunction(1, db_new)),
     "current": Name("current", BuiltinFunction(1, db_identity)),
     "Map": Name("Map", BuiltinFunction(0, db_map)),
     "Boolean": Name("Boolean", BuiltinFunction(1, db_to_boolean)),

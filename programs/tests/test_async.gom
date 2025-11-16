@@ -8,12 +8,12 @@ async function transform(val) => {
    return val * 2!
 }!
 
-const result await(getData())!
-print("getData result: ${result}")!
+const result = await getData()!
+print "getData result: ${result}"!
 
-const transformed await(transform(result))!
-print("Transformed: ${transformed}")!
+const transformed = await transform(result)!
+print "Transformed: ${transformed}"!
 
 if transformed == 198 {
-   print("PASS: Async functions")!
+   print "PASS: Async functions"!
 }

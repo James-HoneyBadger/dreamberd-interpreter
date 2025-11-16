@@ -6,7 +6,7 @@ function square(x) => x * x!
 function cube(x) => x * x * x!
 function double(x) => x * 2!
 
-const pi 3.14159!
+const pi = 3.14159!
 
 export square to main!
 export cube to main!
@@ -20,19 +20,19 @@ import cube!
 import double!
 import pi!
 
-print("=== Math Utilities Demo ===")!
-print("")!
+print "=== Math Utilities Demo ==="!
+print ""!
 
-const num 5!
-print("Number: ${num}")!
-print("")!
+const num = 5!
+print "Number: ${num}"!
+print ""!
 
-print("square(${num}) = ${square(num)}")!
-print("cube(${num}) = ${cube(num)}")!
-print("double(${num}) = ${double(num)}")!
-print("")!
+print "square(${num} = ${square num}")!
+print "cube(${num} = ${cube num}")!
+print "double(${num} = ${double num}")!
+print ""!
 
-print("Pi constant: ${pi}")!
-const radius 10!
-const area pi * square(radius)!
-print("Circle area (r=${radius}): ${area}")!
+print "Pi constant: ${pi}"!
+const radius = 10!
+const area = pi * square radius!
+print "Circle area (r=${radius}: ${area}")!

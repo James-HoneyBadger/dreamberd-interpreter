@@ -449,11 +449,11 @@ def create_function_definition(
     if is_async:
         keywords = names_in_row[:2]
         name = names_in_row[2] if len(names_in_row) > 2 else None
-        initial_args = names_in_row[3:]
+        initial_args = [t for t in names_in_row[3:] if t.value != ""]
     else:
         keywords = names_in_row[:1]
         name = names_in_row[1] if len(names_in_row) > 1 else None
-        initial_args = names_in_row[2:]
+        initial_args = [t for t in names_in_row[2:] if t.value != ""]
 
     if name is None:
         raise_error_at_token(
@@ -468,7 +468,7 @@ def create_function_definition(
     args = list(initial_args)
     while i < len(without_whitespace):
         token = without_whitespace[i]
-        if token.type == TokenType.NAME:
+        if token.type == TokenType.NAME and token.value != "":
             args.append(token)
         elif token.type in {TokenType.FUNC_POINT, TokenType.L_CURLY}:
             # Stop when we hit the => or { that starts the function body
@@ -637,23 +637,6 @@ def create_unscoped_code_statement(
 
     tokens_no_ws = [t for t in tokens if t.type != TokenType.WHITESPACE]
 
-    # Check for ReverseStatement: reverse name!
-    # Should have exactly 3 non-whitespace tokens: keyword, name, punctuation
-    if (
-        len(tokens_no_ws) == 3
-        and tokens_no_ws[0].type == TokenType.NAME
-        and tokens_no_ws[1].type == TokenType.NAME
-        and tokens_no_ws[2].type in {TokenType.BANG, TokenType.QUESTION}
-    ):
-        return (
-            ReverseStatement(
-                keyword=tokens_no_ws[0],  # 'reverse' keyword
-                name=tokens_no_ws[1],  # variable to reverse
-                debug=debug_level,
-            ),
-            ExpressionStatement(tokens[:-1], debug_level),
-        )
-
     # it's a function!!!!!!!!!!!!!!!!!
     has_func_point = [t.type == TokenType.FUNC_POINT for t in tokens]
     if any(has_func_point):
@@ -779,6 +762,22 @@ def create_unscoped_code_statement(
 
     # make a list of all possible things, starting with plain expression
     possibilities: list[CodeStatement] = [ExpressionStatement(tokens[:-1], debug_level)]
+    # Consider ReverseStatement as a possibility (do not short-circuit)
+    if (
+        len(tokens_no_ws) == 3
+        and tokens_no_ws[0].type == TokenType.NAME
+        and tokens_no_ws[1].type == TokenType.NAME
+        and tokens_no_ws[2].type in {TokenType.BANG, TokenType.QUESTION}
+    ):
+        possibilities.append(
+            ReverseStatement(
+                keyword=tokens_no_ws[
+                    0
+                ],  # candidate keyword (should resolve to 'reverse')
+                name=tokens_no_ws[1],
+                debug=debug_level,
+            )
+        )
     if can_be_return:
         possibilities.append(
             ReturnStatement(

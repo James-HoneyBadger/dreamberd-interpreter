@@ -639,7 +639,38 @@ def assign_variable(
     name_token = statement.name
 
     var, ns = get_name_and_namespace_from_namespaces(name, namespaces)
-    if var is None:
+    # Support dotted property assignment e.g., alice.name = "Alice"!
+    dotted_target = None
+    if var is None and "." in name:
+        parts = name.split(".")
+        base_name, tail = parts[0], parts[1:]
+        base_entry, _ = get_name_and_namespace_from_namespaces(base_name, namespaces)
+        if base_entry is None:
+            raise_error_at_token(
+                filename, code, "Attempted to set a name that is undefined.", name_token
+            )
+        container_val = base_entry.value  # type: ignore[attr-defined]
+        # Traverse through intermediate segments
+        for seg in tail[:-1]:
+            if (
+                not isinstance(container_val, GulfOfMexicoNamespaceable)
+                or seg not in container_val.namespace
+            ):
+                raise_error_at_token(
+                    filename,
+                    code,
+                    "Attempted to set a name that is undefined.",
+                    name_token,
+                )
+            next_entry = container_val.namespace[seg]
+            container_val = next_entry.value  # type: ignore[attr-defined]
+        # Now container_val should be namespaceable, assign into last segment
+        if not isinstance(container_val, GulfOfMexicoNamespaceable):
+            raise_error_at_token(
+                filename, code, "Attempted to set a name that is undefined.", name_token
+            )
+        dotted_target = (container_val, tail[-1])
+    elif var is None:
         raise_error_at_token(
             filename, code, "Attempted to set a name that is undefined.", name_token
         )
@@ -741,32 +772,69 @@ def assign_variable(
 
         # Note: For indexed assignment (e.g., list[0] = x), we don't check can_edit_value
         # because const var allows modifying elements, just not replacing the entire value
-        assign_variable_helper(var.value, indexes)
+        if dotted_target is not None:
+            container_val, key = dotted_target
+            entry = container_val.namespace.get(key)
+            if entry is None:
+                raise_error_at_token(
+                    filename,
+                    code,
+                    "Attempted to index into an undefined property.",
+                    name_token,
+                )
+            assign_variable_helper(entry.value, indexes)  # type: ignore[attr-defined]
+        else:
+            assign_variable_helper(var.value, indexes)
 
     else:
-        if not isinstance(var, Variable):
-            raise_error_at_token(
-                filename,
-                code,
-                "Attempted to set name that is not a variable.",
-                name_token,
+        if dotted_target is not None:
+            container_val, key = dotted_target
+            existing = container_val.namespace.get(key)
+            if existing is None:
+                container_val.namespace[key] = Name(key, new_value)
+            elif isinstance(existing, Variable):
+                if not existing.can_be_reset:
+                    raise_error_at_token(
+                        filename,
+                        code,
+                        "Attempted to set a variable that cannot be set.",
+                        name_token,
+                    )
+                existing.add_lifetime(
+                    new_value,
+                    confidence,
+                    100000000000,
+                    existing.can_be_reset,
+                    existing.can_edit_value,
+                    is_temporal=False,
+                    temporal_duration=0.0,
+                )
+            else:  # Name
+                existing.value = new_value  # type: ignore[attr-defined]
+        else:
+            if not isinstance(var, Variable):
+                raise_error_at_token(
+                    filename,
+                    code,
+                    "Attempted to set name that is not a variable.",
+                    name_token,
+                )
+            if not var.can_be_reset:
+                raise_error_at_token(
+                    filename,
+                    code,
+                    "Attempted to set a variable that cannot be set.",
+                    name_token,
+                )
+            var.add_lifetime(
+                new_value,
+                confidence,
+                100000000000,
+                var.can_be_reset,
+                var.can_edit_value,
+                is_temporal=False,
+                temporal_duration=0.0,
             )
-        if not var.can_be_reset:
-            raise_error_at_token(
-                filename,
-                code,
-                "Attempted to set a variable that cannot be set.",
-                name_token,
-            )
-        var.add_lifetime(
-            new_value,
-            confidence,
-            100000000000,
-            var.can_be_reset,
-            var.can_edit_value,
-            is_temporal=False,
-            temporal_duration=0.0,
-        )
 
     # check if there is a watcher for this name
     watchers_key = (name, id(namespaces[-1]))
@@ -1482,17 +1550,21 @@ def evaluate_expression_for_real(
                 )
 
             caller = None
-            if len(name_split := expr.name.value.split(".")) > 1:
+            dotted_call = len(name_split := expr.name.value.split(".")) > 1
+            if dotted_call:
                 caller = ".".join(name_split[:-1])
-                expr = deepcopy(
-                    expr
-                )  # we create a copy of the expression as to not modify it badly
-                expr.args.insert(
-                    0,
-                    ValueNode(
-                        Token(TokenType.NAME, caller, expr.name.line, expr.name.col)
-                    ),
-                )  # artificially put this here, as this is the imaginary "this"
+                # Only inject caller as first arg for builtin methods that modify the caller
+                if (
+                    isinstance(func.value, BuiltinFunction)
+                    and func.value.modifies_caller
+                ):
+                    expr = deepcopy(expr)  # avoid mutating original
+                    expr.args.insert(
+                        0,
+                        ValueNode(
+                            Token(TokenType.NAME, caller, expr.name.line, expr.name.col)
+                        ),
+                    )
             args = [
                 evaluate_expression(
                     arg, namespaces, async_statements, when_statement_watchers
@@ -1501,13 +1573,21 @@ def evaluate_expression_for_real(
             ]
             if isinstance(args[0], GulfOfMexicoSpecialBlankValue):
                 args = args[1:]
+            # Extend namespaces with caller's namespace for method-style calls
+            extended_namespaces = namespaces
+            if caller is not None:
+                caller_entry = get_name_from_namespaces(caller, namespaces)
+                if isinstance(caller_entry, (Variable, Name)):
+                    caller_val = caller_entry.value
+                    if isinstance(caller_val, GulfOfMexicoNamespaceable):
+                        extended_namespaces = namespaces + [caller_val.namespace]
             if (
                 isinstance(func.value, GulfOfMexicoFunction)
                 and func.value.is_async
                 and not force_execute_sync
             ):
                 register_async_function(
-                    expr, func.value, namespaces, args, async_statements
+                    expr, func.value, extended_namespaces, args, async_statements
                 )
                 return GulfOfMexicoUndefined()
             elif (
@@ -1529,7 +1609,7 @@ def evaluate_expression_for_real(
                         )
 
                 retval = evaluate_normal_function(
-                    expr, func.value, namespaces, args, when_statement_watchers
+                    expr, func.value, extended_namespaces, args, when_statement_watchers
                 )
                 when_watchers = get_code_from_when_statement_watchers(
                     id(args[0]), when_statement_watchers
@@ -1557,7 +1637,7 @@ def evaluate_expression_for_real(
                 return retval
 
             return evaluate_normal_function(
-                expr, func.value, namespaces, args, when_statement_watchers
+                expr, func.value, extended_namespaces, args, when_statement_watchers
             )
 
         case ListNode():  # done :)
@@ -1874,14 +1954,20 @@ def determine_statement_type(
             ):
                 return st
         elif isinstance(st, ReturnStatement):
+            # Prefer explicit return statements. First, handle short-form (no keyword token).
             if st.keyword is None:
                 return st
+            # Primary path: resolve via namespaces to allow keyword aliasing.
             val = get_name_from_namespaces(st.keyword.value, namespaces)
             if (
                 val
                 and isinstance(val.value, GulfOfMexicoKeyword)
                 and val.value.value == "return"
             ):
+                return st
+            # Fallback: if the literal token text is 'return', still treat as return.
+            # This avoids mis-disambiguation when the keyword namespace isn't visible in scope.
+            if st.keyword.value == "return":
                 return st
         elif isinstance(
             st, FunctionDefinition
@@ -2518,11 +2604,38 @@ def load_globals(
 def get_name_from_namespaces(
     name: str, namespaces: list[Namespace]
 ) -> Optional[Union[Variable, Name]]:
-    """Get a name or variable from the namespaces, searching from most local to global."""
+    """Get a name or variable from the namespaces, searching from most local to global.
+
+    Supports dotted access for namespaceable values (object/list/string namespaces).
+    """
+    # Fast path for simple names
+    if "." not in name:
+        for namespace in reversed(namespaces):
+            if name in namespace:
+                return namespace[name]
+        return None
+
+    parts = name.split(".")
+    # Find the base in any namespace (closest scope wins)
+    base_entry: Optional[Union[Variable, Name]] = None
     for namespace in reversed(namespaces):
-        if name in namespace:
-            return namespace[name]
-    return None
+        if parts[0] in namespace:
+            base_entry = namespace[parts[0]]
+            break
+    if base_entry is None:
+        return None
+
+    # Walk through nested namespaces
+    current_value: GulfOfMexicoValue = base_entry.value  # type: ignore[attr-defined]
+    current_entry: Optional[Union[Variable, Name]] = base_entry
+    for seg in parts[1:]:
+        if not isinstance(current_value, GulfOfMexicoNamespaceable):
+            return None
+        if seg not in current_value.namespace:
+            return None
+        current_entry = current_value.namespace[seg]
+        current_value = current_entry.value  # type: ignore[attr-defined]
+    return current_entry
 
 
 def get_name_and_namespace_from_namespaces(
@@ -2791,6 +2904,11 @@ def interpret_code_statements(
                     importable_names,
                     exported_names,
                 )
+                # Populate class members into the class object's namespace (exclude the class self-name)
+                for k, v in class_namespace.items():
+                    if k == statement.name.value:
+                        continue
+                    class_obj.namespace[k] = v
                 # Add the class to the namespace
                 namespaces[-1][statement.name.value] = Name(
                     statement.name.value, class_obj

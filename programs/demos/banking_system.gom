@@ -1,18 +1,18 @@
 // Banking System Demo
 
 class BankAccount {
-   var balance 0!
-   var accountName "Unknown"!
+   var balance = 0!
+   var accountName = "Unknown"!
    
    function deposit(amount) => {
       balance = balance + amount!
-      print("${accountName}: Deposited ${amount}. New balance: ${balance}")!
+      print "${accountName}: Deposited ${amount}. New balance: ${balance}"!
    }!
    
    function withdraw(amount) => {
       if balance > amount {
          balance = balance - amount!
-         print("${accountName}: Withdrew ${amount}. New balance: ${balance}")!
+         print "${accountName}: Withdrew ${amount}. New balance: ${balance}"!
       }
    }!
    
@@ -20,7 +20,7 @@ class BankAccount {
       if balance > amount {
          balance = balance - amount!
          target.balance = target.balance + amount!
-         print("${accountName}: Transferred ${amount} to ${target.accountName}")!
+         print "${accountName}: Transferred ${amount} to ${target.accountName}"!
       }
    }!
    
@@ -29,26 +29,26 @@ class BankAccount {
    }!
 }!
 
-print("=== Banking System Demo ===")!
-print("")!
+print "=== Banking System Demo ==="!
+print ""!
 
-const aliceAccount new BankAccount()!
+const aliceAccount = new BankAccount!
 aliceAccount.accountName = "Alice"!
-aliceAccount.deposit(1000)!
+aliceAccount.deposit 1000!
 
-const bobAccount new BankAccount()!
+const bobAccount = new BankAccount!
 bobAccount.accountName = "Bob"!
-bobAccount.deposit(500)!
+bobAccount.deposit 500!
 
-print("")!
-print("Performing transactions...")!
-print("")!
+print ""!
+print "Performing transactions..."!
+print ""!
 
-aliceAccount.withdraw(200)!
-bobAccount.deposit(100)!
-aliceAccount.transfer(150, bobAccount)!
+aliceAccount.withdraw 200!
+bobAccount.deposit 100!
+aliceAccount.transfer 150, bobAccount!
 
-print("")!
-print("Final balances:")!
-print("Alice: ${aliceAccount.getBalance()}")!
-print("Bob: ${bobAccount.getBalance()}")!
+print ""!
+print "Final balances:"!
+print "Alice: ${aliceAccount.getBalance()}"!
+print "Bob: ${bobAccount.getBalance()}"!

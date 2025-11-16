@@ -1,7 +1,7 @@
 // Test: Class Definitions
 
 class Counter {
-   var count 0!
+   var count = 0!
    
    function increment() => {
       count = count + 1!
@@ -12,16 +12,17 @@ class Counter {
    }!
 }!
 
-const c new Counter()!
-print("Initial: ${c.getValue()}")!
+const c = new Counter!
+const init = c.getValue()!
+print "Initial: ${init}"!
 
 c.increment()!
 c.increment()!
 c.increment()!
 
-const val c.getValue()!
-print("After 3 increments: ${val}")!
+const val = c.getValue()!
+print "After 3 increments: ${val}"!
 
 if val == 3 {
-   print("PASS: Classes")!
+   print "PASS: Classes"!
 }
