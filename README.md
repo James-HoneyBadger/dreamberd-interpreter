@@ -26,6 +26,21 @@ python -m gulfofmexico -c "print(42)!"
 python -m gulfofmexico.ide
 ```
 
+### REPL quick start
+
+```bash
+python -m gulfofmexico.repl
+```
+
+Inside the REPL you can load files (including multi-file demos with `=====` sections):
+
+```text
+:load programs/examples/01_hello_world.gom
+```
+
+Handy commands: `:vars`, `:history [n]`, `:run [n|last]`, `:reset`, `:quit`.
+See USER_GUIDE.md → “Using the REPL” for more.
+
 ## Core Language Features
 
 ### Arrays Start at -1

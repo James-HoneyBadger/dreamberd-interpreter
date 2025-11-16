@@ -50,6 +50,48 @@ Or try the interactive REPL:
 python -m gulfofmexico
 ```
 
+## Using the REPL
+
+The REPL lets you experiment interactively and run files with import/export sections.
+
+- Start the REPL:
+
+```bash
+python3 -m gulfofmexico.repl
+```
+
+- Try a few statements:
+
+```gom
+print "Hello from REPL"!
+const x = 7!
+print "x =", x!
+
+function add(a, b) => {
+   return a + b!
+}!
+
+const r = add 2, 3!
+print "sum =", r!
+```
+
+- Load and run a file (also supports multi-file sections using `===== section =====`):
+
+```text
+:load programs/examples/01_hello_world.gom
+```
+
+- Handy commands (type `:help` inside REPL for the full list):
+
+```text
+:vars                # show current variables
+:history [n]         # list or show a history block
+:run [n|last]        # re-run a history block
+:reset               # clear state
+:load <file>         # load a .gom file (handles ===== sections)
+:quit                # exit REPL
+```
+
 ## Understanding the Basics
 
 ### Statements End with !

@@ -17,8 +17,15 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 from typing import Optional, Union
+import re
 
-from gulfofmexico.builtin import KEYWORDS, Name, GulfOfMexicoValue, Variable
+from gulfofmexico.builtin import (
+    KEYWORDS,
+    Name,
+    GulfOfMexicoValue,
+    Variable,
+    GulfOfMexicoUndefined,
+)
 from gulfofmexico.processor.lexer import tokenize
 from gulfofmexico.processor.syntax_tree import generate_syntax_tree
 from gulfofmexico.base import InterpretationError
@@ -176,7 +183,59 @@ class GomRepl:
         except OSError as e:
             print(f"Failed to read {file}: {e}")
             return
-        self._execute(code, filename=str(file))
+        # Support multi-file sections using ===== markers (same as run_file)
+        code_lines = code.splitlines(keepends=True)
+        files: list[tuple[Optional[str], str]] = []
+        matches = [re.match(r"=====.*", l) for l in code_lines]
+        if any(matches):
+            for i, match in reversed([*enumerate(matches)]):
+                if match is None:
+                    continue
+                name = match.group().strip("=").strip() or None
+                files.insert(0, (name, "".join(code_lines[i + 1 :])))
+                del code_lines[i:]
+            files.insert(0, (None, "".join(code_lines[0:])))
+        else:
+            files = [(None, "".join(code_lines))]
+
+        # Execute each section in current REPL state, preserving namespaces
+        # and handling import/export map across sections.
+        any_error = False
+        for section_name, section_code in files:
+            fname = section_name or "__unnamed_file__"
+            exported_names: list[tuple[str, str, GulfOfMexicoValue]] = []
+
+            # Prepare interpreter module state for this section
+            interpreter.filename = fname
+            interpreter.code = section_code
+
+            try:
+                tokens = tokenize(fname, section_code)
+                statements = generate_syntax_tree(fname, tokens, section_code)
+                interpreter.interpret_code_statements_main_wrapper(
+                    statements,
+                    self.namespaces,
+                    self.async_statements,
+                    self.when_statement_watchers,
+                    self.importable_names,
+                    exported_names,
+                )
+            except InterpretationError as e:
+                print(f"\x1b[31m{e}\x1b[0m")
+                any_error = True
+                break
+
+            # Apply exports to importable map
+            for target_filename, name, value in exported_names:
+                if target_filename not in self.importable_names:
+                    self.importable_names[target_filename] = {}
+                self.importable_names[target_filename][name] = value
+
+        # Record load command in history (avoid dumping entire file into history)
+        self.history.append(f":load {str(file)}")
+        if not any_error:
+            # Optionally provide a small ack
+            pass
 
     def _dispatch_command(self, cmd: str) -> bool:
         """
@@ -348,7 +407,8 @@ class GomRepl:
                 self.importable_names[target_filename] = {}
             self.importable_names[target_filename][name] = value
 
-        if result is not None:
+        # Only print meaningful results (suppress implicit 'undefined')
+        if result is not None and not isinstance(result, GulfOfMexicoUndefined):
             # Best-effort print of result
             print(result)
 

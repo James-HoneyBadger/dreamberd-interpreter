@@ -4,6 +4,18 @@ This directory contains development and maintenance scripts for the Gulf of Mexi
 
 ## Scripts
 
+### `run_programs_via_repl.py`
+Batch runner that loads each `programs/**/*.gom` file into the interactive REPL using `:load <file>` and then exits. This verifies REPL parity with the direct interpreter.
+
+**Usage:**
+```bash
+python3 scripts/run_programs_via_repl.py
+```
+
+**Notes:**
+- Handles multi-file `.gom` demos that use `===== section =====` markers
+- Classifies results based on clean REPL exit and absence of errors
+
 ### `run_all_programs.py`
 Batch runner that executes all `.gom` programs in the `programs/` directory and reports results.
 
